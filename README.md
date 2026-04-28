@@ -31,18 +31,11 @@ d'orientation (principe Human-in-the-Loop).
 
 ---
    
-## 🏗️ Architecture Microservices
+## 🏗️ Architecture
 
-| Service | Port | Technologie | Rôle |
-|---|---|---|---|
-| API Gateway | 8080 | Spring Cloud Gateway | Point d'entrée unique |
-| Eureka Server | 8761 | Spring Cloud Eureka | Découverte des services |
-| Auth Service | 8081 | Spring Boot | Authentification JWT |
-| Student Service | 8082 | Spring Boot | Profils et notes lycéens |
-| ML Service | 8084 | FastAPI Python | Prédictions et XAI |
-| Orientation Service | 8083 | Spring Boot | Recommandations |
-| Notification Service | 8085 | Spring Boot | Emails et SSE |
-| Config Server | 8888 | Spring Cloud Config | Configuration centralisée |
+ ![alt text](https://file%2B.vscode-resource.vscode-cdn.net/Users/macbook/Documents/architecture_microservices_orientation.svg?version%3D1777339439298)Microservices
+
+
 ---
 
 ## 📁 Structure du projet
