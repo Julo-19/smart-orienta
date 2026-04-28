@@ -33,7 +33,6 @@ d'orientation (principe Human-in-the-Loop).
    
 ## 🏗️ Architecture
 
- ![alt text](https://file%2B.vscode-resource.vscode-cdn.net/Users/macbook/Documents/architecture_microservices_orientation.svg?version%3D1777339439298)Microservices
 
 
 ---
