@@ -30,31 +30,19 @@ d'orientation (principe Human-in-the-Loop).
 | CI/CD | GitHub Actions |
 
 ---
-
+   
 ## 🏗️ Architecture Microservices
-   ┌─────────────────┐
-                    │   API Gateway   │
-                    │   Port: 8080    │
-                    └────────┬────────┘
-                             │
-      
-┌──────────────────────┼──────────────────────┐
-      │                      │                      │
-┌──────┴──────┐      ┌────────┴───────┐    
-┌────────┴───────┐
-│Auth Service │      │Student Service │    │Orientation Svc │
-│ Port: 8081  │      │  Port: 8082    │    │  Port: 8083    │
-└─────────────┘      └────────────────┘    
-└────────────────┘
-│
-┌──────────────────────┼──────────────────────┐
-│                      │                      │
-┌──────┴──────┐      ┌────────┴───────┐    
-┌────────┴───────┐
-│  ML Service │      │  Notification  │    │  Eureka Server │
-│ Port: 8084  │      │  Port: 8085    │    │  Port: 8761    │
-└─────────────┘      └────────────────┘    
-└────────────────┘
+
+| Service | Port | Technologie | Rôle |
+|---|---|---|---|
+| API Gateway | 8080 | Spring Cloud Gateway | Point d'entrée unique |
+| Eureka Server | 8761 | Spring Cloud Eureka | Découverte des services |
+| Auth Service | 8081 | Spring Boot | Authentification JWT |
+| Student Service | 8082 | Spring Boot | Profils et notes lycéens |
+| ML Service | 8084 | FastAPI Python | Prédictions et XAI |
+| Orientation Service | 8083 | Spring Boot | Recommandations |
+| Notification Service | 8085 | Spring Boot | Emails et SSE |
+| Config Server | 8888 | Spring Cloud Config | Configuration centralisée |
 ---
 
 ## 📁 Structure du projet
@@ -108,17 +96,33 @@ docker-compose ps
 | Eureka Dashboard | http://localhost:8761 |
 | Swagger UI | http://localhost:8080/swagger-ui.html |
 
----
+## 👥 Équipe
 
-## 👥 Auteurs
+### Souleymane Keita BARRO
+- Maquettes Figma
+- MCD — Modèle Conceptuel de Données
+- MLD — Modèle Logique de Données
+- Diagramme de classes
+- Module XAI
+- Auth Service
+- Orientation Service
+- Tests unitaires JUnit
+- Tests E2E Playwright
+- SonarQube
+- CI/CD GitHub Actions
 
-| Nom | Rôle |
-|---|---|
-| Souleymane Keita BARRO | MCD, MLD, Auth Service, Orientation Service, 
-XAI, Frontend Lycéen |
-| Sokhna Ramatoulaye SADIO | Diagrammes UML, ML Service, Kafka, Frontend 
-Conseiller, 
-CI/CD |
+
+### Sokhna Ramatoulaye SADIO
+- CDC
+- Diagrammes UML (use-case)
+- Dataset synthétique
+- 4 modèles Machine Learning
+- Student Service
+- ML Service FastAPI
+- Interface lycéen Next.js
+- Kafka + Notification Service
+- Interface conseiller Next.js
+- Rédaction mémoire
 
 ---
 
