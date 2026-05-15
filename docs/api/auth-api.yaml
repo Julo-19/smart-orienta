@@ -1,0 +1,376 @@
+openapi: 3.0.3
+
+info:
+  title: Auth Service API
+  description: |
+    Service d'authentification du Système SmartOrientation.
+    Gère l'inscription, la connexion, les tokens JWT et les sessions Redis.
+  version: 1.0.0
+  contact:
+    name: Souleymane Keita BARRO
+    email: skbarro19@gmail.com
+
+servers:
+  - url: http://localhost:8081
+    description: Serveur de développement local
+  - url: http://api-gateway:8080/auth
+    description: Via API Gateway dans Docker
+
+tags:
+  - name: Authentification
+    description: Inscription, connexion et gestion des sessions
+
+paths:
+
+  /auth/register:
+    post:
+      tags:
+        - Authentification
+      summary: Inscription d'un nouveau lycéen
+      description: Crée un nouveau compte utilisateur dans le système.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              nom: "Barro"
+              prenom: "Souleymane"
+              email: "julo19@gmail.com"
+              motDePasse: "Password123!"
+              role: "LYCEEN"
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+              example:
+                userId: "uuid-123-abc"
+                message: "Compte créé avec succès"
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 400
+                error: "Bad Request"
+                message: "Email mal formaté"
+        '409':
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 409
+                error: "Conflict"
+                message: "Cet email est déjà associé à un compte"
+
+  /auth/login:
+    post:
+      tags:
+        - Authentification
+      summary: Connexion et génération du token JWT
+      description: Authentifie l'utilisateur et retourne un token JWT valable 7 jours.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "julo19@email.com"
+              motDePasse: "Password123!"
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                token: "eyJhbGciOiJIUzI1NiJ9..."
+                expiresIn: 604800
+                role: "LYCEEN"
+                userId: "uuid-123-abc"
+        '401':
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 401
+                error: "Unauthorized"
+                message: "Email ou mot de passe incorrect"
+        '403':
+          description: Compte désactivé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 403
+                error: "Forbidden"
+                message: "Votre compte a été désactivé"
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentification
+      summary: Déconnexion et invalidation du token
+      description: Invalide le token JWT en le supprimant de Redis.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Déconnexion réussie
+          content:
+            application/json:
+              example:
+                message: "Déconnexion réussie"
+        '401':
+          description: Token manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentification
+      summary: Rafraîchir le token JWT
+      description: Génère un nouveau token JWT à partir d'un token encore valide.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Nouveau token généré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Token expiré ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentification
+      summary: Récupérer le profil de l'utilisateur connecté
+      description: Retourne les informations de l'utilisateur associé au token JWT.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profil récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+              example:
+                userId: "uuid-123-abc"
+                nom: "BARRO"
+                prenom: "Souleymane"
+                email: "julo19@email.com"
+                role: "LYCEEN"
+                dateCreation: "2024-11-01T08:00:00Z"
+        '401':
+          description: Token manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/password:
+    put:
+      tags:
+        - Authentification
+      summary: Modifier le mot de passe
+      description: Permet à l'utilisateur connecté de changer son mot de passe.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              ancienMotDePasse: "Password123!"
+              nouveauMotDePasse: "NewPassword456!"
+      responses:
+        '200':
+          description: Mot de passe modifié avec succès
+          content:
+            application/json:
+              example:
+                message: "Mot de passe modifié avec succès"
+        '400':
+          description: Nouveau mot de passe invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Ancien mot de passe incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenu via /auth/login
+
+  schemas:
+
+    RegisterRequest:
+      type: object
+      required:
+        - nom
+        - prenom
+        - email
+        - motDePasse
+        - role
+      properties:
+        nom:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "BARRO"
+        prenom:
+          type: string
+          minLength: 2
+          maxLength: 150
+          example: "Souleymane"
+        email:
+          type: string
+          format: email
+          example: "julo19@email.com"
+        motDePasse:
+          type: string
+          minLength: 8
+          description: "Minimum 8 caractères avec majuscule et chiffre"
+          example: "Password123!"
+        role:
+          type: string
+          enum: [LYCEEN, CONSEILLER, ADMIN]
+          example: "LYCEEN"
+
+    RegisterResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          example: "uuid-123-abc"
+        message:
+          type: string
+          example: "Compte créé avec succès"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - motDePasse
+      properties:
+        email:
+          type: string
+          format: email
+          example: "julo19@email.com"
+        motDePasse:
+          type: string
+          example: "Password123!"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "Token JWT signé"
+          example: "eyJhbGciOiJIUzI1NiJ9..."
+        expiresIn:
+          type: integer
+          description: "Durée de validité en secondes (7 jours = 604800)"
+          example: 604800
+        role:
+          type: string
+          enum: [LYCEEN, CONSEILLER, ADMIN]
+          example: "LYCEEN"
+        userId:
+          type: string
+          format: uuid
+          example: "uuid-123-abc"
+
+    UserProfile:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        nom:
+          type: string
+        prenom:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [LYCEEN, CONSEILLER, ADMIN]
+        dateCreation:
+          type: string
+          format: date-time
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - ancienMotDePasse
+        - nouveauMotDePasse
+      properties:
+        ancienMotDePasse:
+          type: string
+          example: "Password123!"
+        nouveauMotDePasse:
+          type: string
+          minLength: 8
+          example: "NewPassword456!"
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-11-15T10:30:00Z"
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "Email mal formaté"
+        path:
+          type: string
+          example: "/auth/register"
+        service:
+          type: string
+          example: "auth-service"

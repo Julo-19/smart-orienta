@@ -1,0 +1,62 @@
+# ══════════════════════════════
+# JAVA / SPRING BOOT
+# ══════════════════════════════
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+!**/src/main/*
+!**/src/test/*
+
+# ══════════════════════════════
+# PYTHON / FASTAPI / ML
+# ══════════════════════════════
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+env/
+.env
+*.pkl
+*.h5
+*.joblib
+
+# ══════════════════════════════
+# NODE.JS / NEXT.JS
+# ══════════════════════════════
+node_modules/
+.next/
+out/
+build/
+npm-debug.log*
+
+# ══════════════════════════════
+# VARIABLES D'ENVIRONNEMENT
+# ══════════════════════════════
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# ══════════════════════════════
+# IDE
+# ══════════════════════════════
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# ══════════════════════════════
+# DOCKER
+# ══════════════════════════════
+.docker/
+
+# ══════════════════════════════
+# OS
+# ══════════════════════════════
+.DS_Store
+Thumbs.db
