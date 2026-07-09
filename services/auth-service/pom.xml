@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.smartorienta</groupId>
-	<artifactId>auth-seervices</artifactId>
+	<artifactId>auth-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>auth-seervices</name>
-	<description>auth-seervices</description>
+	<name>auth-service</name>
+	<description>auth-service</description>
 	<url/>
 	<licenses>
 		<license/>

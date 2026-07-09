@@ -1,10 +1,10 @@
-package com.smartorienta.authseervices;
+package com.smartorienta.authservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AuthSeervicesApplicationTests {
+class AuthServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
