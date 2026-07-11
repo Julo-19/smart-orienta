@@ -37,7 +37,7 @@ public class AuthService {
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Email ou mot de passe incorrect");
+            throw new RuntimeException("Email ou mot de passe incorrect !ß");
         }
 
         String accessToken = jwtService.generateAccessToken(user);
