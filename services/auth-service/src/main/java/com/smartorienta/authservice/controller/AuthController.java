@@ -2,6 +2,7 @@ package com.smartorienta.authservice.controller;
 
 import com.smartorienta.authservice.dto.AuthResponse;
 import com.smartorienta.authservice.dto.LoginRequest;
+import com.smartorienta.authservice.dto.RefreshRequest;
 import com.smartorienta.authservice.dto.RegisterRequest;
 import com.smartorienta.authservice.entity.User;
 import com.smartorienta.authservice.service.AuthService;
@@ -29,5 +30,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
+        return ResponseEntity.ok(authService.refresh(request));
     }
 }

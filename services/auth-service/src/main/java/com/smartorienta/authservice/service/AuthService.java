@@ -2,6 +2,7 @@ package com.smartorienta.authservice.service;
 
 import com.smartorienta.authservice.dto.AuthResponse;
 import com.smartorienta.authservice.dto.LoginRequest;
+import com.smartorienta.authservice.dto.RefreshRequest;
 import com.smartorienta.authservice.dto.RegisterRequest;
 import com.smartorienta.authservice.entity.Role;
 import com.smartorienta.authservice.entity.User;
@@ -37,13 +38,30 @@ public class AuthService {
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Email ou mot de passe incorrect !ß");
+            throw new RuntimeException("Email ou mot de passe incorrect");
         }
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
         return new AuthResponse(accessToken, refreshToken, user.getEmail(),user.getRole().name());
+    }
+
+    public AuthResponse refresh(RefreshRequest request) {
+        String refreshToken = request.getRefreshToken();
+
+        if (!jwtService.isTokenValid(refreshToken)) {
+            throw new RuntimeException("Refresh token invalid ou expired");
+        }
+
+        String email = jwtService.extractEmail(refreshToken);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        String newAccessToken = jwtService.generateAccessToken(user);
+
+        return new AuthResponse(newAccessToken, refreshToken, user.getEmail(),user.getRole().name());
     }
 
 }
