@@ -1,5 +1,7 @@
 package com.smartorienta.authservice.controller;
 
+import com.smartorienta.authservice.dto.AuthResponse;
+import com.smartorienta.authservice.dto.LoginRequest;
 import com.smartorienta.authservice.dto.RegisterRequest;
 import com.smartorienta.authservice.entity.User;
 import com.smartorienta.authservice.service.AuthService;
@@ -22,5 +24,10 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         User user = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 }
