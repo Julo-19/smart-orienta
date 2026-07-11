@@ -18,6 +18,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     public User register(RegisterRequest request) {
         if(userRepository.existsByEmail(request.getEmail())) {
@@ -44,6 +45,8 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
+        refreshTokenService.store(user.getEmail(), refreshToken);
+
         return new AuthResponse(accessToken, refreshToken, user.getEmail(),user.getRole().name());
     }
 
@@ -56,12 +59,24 @@ public class AuthService {
 
         String email = jwtService.extractEmail(refreshToken);
 
+        if (!refreshTokenService.isValid(email,refreshToken)) {
+            throw new RuntimeException("Refresh token invalid ou expired");
+        }
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
         String newAccessToken = jwtService.generateAccessToken(user);
 
         return new AuthResponse(newAccessToken, refreshToken, user.getEmail(),user.getRole().name());
+    }
+
+    public void logout(String refreshToken) {
+
+        if (jwtService.isTokenValid(refreshToken)) {
+            String email = jwtService.extractEmail(refreshToken);
+            refreshTokenService.delete(email);
+        }
     }
 
 }
