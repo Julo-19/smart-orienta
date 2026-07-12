@@ -34,4 +34,23 @@ public class VerificationTokenService {
         }
         return email;
     }
+
+    public String generateResetToken(String email) {
+        String token = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(
+                "reset:" + token,
+                email,
+                Duration.ofHours(1)
+        );
+        return token;
+    }
+
+    public String consumeResetToken(String token) {
+        String email = redisTemplate.opsForValue().get("reset:" + token);
+        if (email != null) {
+            redisTemplate.delete("reset:" + token);
+        }
+        return email;
+    }
+
 }

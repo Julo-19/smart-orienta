@@ -36,4 +36,23 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    public void sendPasswordResetEmail(String to, String token) {
+
+        String link = frontendUrl + "/reset-password?token=" + token;
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(from);
+        message.setTo(to);
+        message.setSubject("SmartOrienta - Réinitialisation de votre mot de passe");
+        message.setText(
+                "Vous avez demandé la réinitialisation de votre mot de passe.\n\n"
+                        + "Cliquez sur ce lien pour choisir un nouveau mot de passe :\n"
+                        + link + "\n\n"
+                        + "Ce lien expire dans 1 heure.\n\n"
+                        + "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email."
+        );
+
+        mailSender.send(message);
+    }
 }

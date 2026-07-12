@@ -100,4 +100,29 @@ public class AuthService {
         userRepository.save(user);
     }
 
+    public void forgotPassword(String email) {
+
+        if (userRepository.existsByEmail(email)) {
+            String token = verificationTokenService.generateResetToken(email);
+            emailService.sendPasswordResetEmail(email, token);
+        }
+    }
+
+    public void resetPassword(String token, String newPassword) {
+
+        String email = verificationTokenService.consumeResetToken(token);
+
+        if (email == null) {
+            throw new RuntimeException("Lien de réinitialisation invalide ou expiré");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        refreshTokenService.delete(email);
+    }
+
 }

@@ -1,9 +1,6 @@
 package com.smartorienta.authservice.controller;
 
-import com.smartorienta.authservice.dto.AuthResponse;
-import com.smartorienta.authservice.dto.LoginRequest;
-import com.smartorienta.authservice.dto.RefreshRequest;
-import com.smartorienta.authservice.dto.RegisterRequest;
+import com.smartorienta.authservice.dto.*;
 import com.smartorienta.authservice.entity.User;
 import com.smartorienta.authservice.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -45,4 +42,17 @@ public class AuthController {
         authService.verifyEmail(token);
         return ResponseEntity.ok("Email confirmé avec succès !");
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok("Si cet email existe, un lien de réinitialisation a été envoyé");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok("Mot de passe réinitialisé avec succès");
+    }
+
 }
