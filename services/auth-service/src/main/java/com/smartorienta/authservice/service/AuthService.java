@@ -6,6 +6,9 @@ import com.smartorienta.authservice.dto.RefreshRequest;
 import com.smartorienta.authservice.dto.RegisterRequest;
 import com.smartorienta.authservice.entity.Role;
 import com.smartorienta.authservice.entity.User;
+import com.smartorienta.authservice.exception.EmailAlreadyUsedException;
+import com.smartorienta.authservice.exception.InvalidCredentialsException;
+import com.smartorienta.authservice.exception.InvalidTokenException;
 import com.smartorienta.authservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,7 +27,7 @@ public class AuthService {
 
     public User register(RegisterRequest request) {
         if(userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Cet email est déjà utilisé");
+            throw new EmailAlreadyUsedException("Cet email est déjà utilisé");
         }
 
         User user = new User();
@@ -43,9 +46,9 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest loginRequest) {
         User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
+                .orElseThrow(() -> new InvalidCredentialsException("Email ou mot de passe incorrect"));
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Email ou mot de passe incorrect");
+            throw new InvalidCredentialsException("Email ou mot de passe incorrect");
         }
 
         String accessToken = jwtService.generateAccessToken(user);
@@ -60,13 +63,13 @@ public class AuthService {
         String refreshToken = request.getRefreshToken();
 
         if (!jwtService.isTokenValid(refreshToken)) {
-            throw new RuntimeException("Refresh token invalid ou expired");
+            throw new InvalidTokenException("Refresh token invalid ou expired");
         }
 
         String email = jwtService.extractEmail(refreshToken);
 
         if (!refreshTokenService.isValid(email,refreshToken)) {
-            throw new RuntimeException("Refresh token invalid ou expired");
+            throw new InvalidTokenException("Refresh token invalid ou expired");
         }
 
         User user = userRepository.findByEmail(email)
@@ -90,7 +93,7 @@ public class AuthService {
         String email = verificationTokenService.consume(token);
 
         if (email == null) {
-            throw new RuntimeException("Lien de confirmation invalide ou expiré");
+            throw new InvalidTokenException("Lien de confirmation invalide ou expiré");
         }
 
         User user = userRepository.findByEmail(email)
@@ -109,11 +112,10 @@ public class AuthService {
     }
 
     public void resetPassword(String token, String newPassword) {
-
         String email = verificationTokenService.consumeResetToken(token);
 
         if (email == null) {
-            throw new RuntimeException("Lien de réinitialisation invalide ou expiré");
+            throw new InvalidTokenException("Lien de réinitialisation invalide ou expiré");
         }
 
         User user = userRepository.findByEmail(email)
