@@ -19,6 +19,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final EmailService emailService;
+    private final VerificationTokenService verificationTokenService;
 
     public User register(RegisterRequest request) {
         if(userRepository.existsByEmail(request.getEmail())) {
@@ -32,7 +34,11 @@ public class AuthService {
         user.setPrenom(request.getPrenom());
         user.setRole(Role.LYCEEN);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        String token = verificationTokenService.generate(savedUser.getEmail());
+        emailService.sendVerificationEmail(savedUser.getEmail(), token);
+
+        return savedUser;
     }
 
     public AuthResponse login(LoginRequest loginRequest) {
@@ -77,6 +83,21 @@ public class AuthService {
             String email = jwtService.extractEmail(refreshToken);
             refreshTokenService.delete(email);
         }
+    }
+
+    public void verifyEmail(String token) {
+
+        String email = verificationTokenService.consume(token);
+
+        if (email == null) {
+            throw new RuntimeException("Lien de confirmation invalide ou expiré");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
     }
 
 }

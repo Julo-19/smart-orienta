@@ -9,10 +9,7 @@ import com.smartorienta.authservice.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -41,5 +38,11 @@ public class AuthController {
     public ResponseEntity<String> logout(@RequestBody RefreshRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok("Déconnexion réussie");
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
+        authService.verifyEmail(token);
+        return ResponseEntity.ok("Email confirmé avec succès !");
     }
 }
