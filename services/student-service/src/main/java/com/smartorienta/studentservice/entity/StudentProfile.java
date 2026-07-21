@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
@@ -25,7 +26,14 @@ public class StudentProfile {
     @Column(nullable = false)
     private String etablissement;
 
+
     private String region;
+
+    @Column(nullable = false)
+    private LocalDate dateNaissance;
+
+    @Column(nullable = false)
+    private String sexe;
 
     @ManyToOne
     @JoinColumn(name = "serie_id")
