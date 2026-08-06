@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import StepIndicator from "@/components/lyceen/StepIndicator";
 import RiasecRadar from "@/components/lyceen/RiasecRadar";
+import Button from "@/components/ui/button";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import {
   QUESTIONS,
   DIMENSION_COLORS,
@@ -217,29 +219,21 @@ export default function RiasecPage() {
 
         {/* Navigation bas de page */}
         <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-          <button
-            onClick={() => router.back()}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            ← Retour
-          </button>
+          <Button variant="ghost" onClick={() => router.back()}>
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+          </Button>
           <div className="flex items-center gap-4">
             <span className="text-xs text-gray-400">
               {totalReponses}/34 réponses
             </span>
-            <button
-              onClick={handleContinuer}
-              disabled={!toutesRepondues}
-              className={`
-                px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150
-                ${toutesRepondues
-                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm cursor-pointer"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                }
-              `}
-            >
-              Continuer →
-            </button>
+            <Button
+                onClick={() => router.push("/lyceen/contexte")}
+                disabled={!toutesRepondues}
+                >
+                Continuer
+                <ArrowRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 

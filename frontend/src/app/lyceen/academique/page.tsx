@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import StepIndicator from "@/components/lyceen/StepIndicator";
 import NoteInput from "@/components/lyceen/NoteInput";
 import { SERIES_CONFIG, calculerMoyenne, Serie } from "@/lib/seriesConfig";
-import { BookOpen } from "lucide-react";
+import { BookOpen, ArrowLeft, ArrowRight } from "lucide-react";
+import Button from "@/components/ui/button";
 
 const SERIES: Serie[] = ["S1", "S2", "S3", "L1", "L2", "G"];
 
@@ -83,12 +84,12 @@ export default function AcademiquePage() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-gray-500">
-            <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+          
+          <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
                 <BookOpen className="w-3 h-3" />
                 {selectedSerie} — {config.description}
-            </p>
           </p>
+          
         </div>
 
         {/* Grilles de notes */}
@@ -155,25 +156,19 @@ export default function AcademiquePage() {
 
         {/* Navigation */}
         <div className="flex justify-between items-center">
-          <button
-            onClick={() => router.back()}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            ← Retour
-          </button>
-          <button
+           {/*Bouton Retour*/}
+            <Button variant="ghost" onClick={() => router.back()}>
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+            </Button>
+          {/*Bouton Continuer*/}
+            <Button
             onClick={() => router.push("/lyceen/riasec")}
             disabled={moyenne === null}
-            className={`
-              px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150
-              ${moyenne !== null
-                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm cursor-pointer"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }
-            `}
-          >
-            Continuer →
-          </button>
+            >
+            Continuer
+            <ArrowRight className="w-4 h-4" />
+            </Button>
         </div>
 
       </div>

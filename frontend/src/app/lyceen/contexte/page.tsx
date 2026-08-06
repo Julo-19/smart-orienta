@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Rocket, Loader2 } from "lucide-react";
+import { Lock, Rocket, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import StepIndicator from "@/components/lyceen/StepIndicator";
+import Button from "@/components/ui/button";
 
 const CONTRAINTES = [
   "Contrainte financière",
@@ -161,37 +162,17 @@ export default function ContextePage() {
 
         {/* Navigation */}
         <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-          <button
-            onClick={() => router.back()}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            ← Retour
-          </button>
+          <Button variant="ghost" onClick={() => router.back()}>
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+          </Button>
 
-          <button
-            onClick={handleLancerML}
-            disabled={isLoading}
-            className={`
-              px-6 py-2.5 rounded-lg text-sm font-semibold
-              transition-all duration-150 flex items-center gap-2
-              ${isLoading
-                ? "bg-blue-400 text-white cursor-wait"
-                : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
-              }
-            `}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Analyse en cours...
-              </>
-            ) : (
-              <>
+          <Button onClick={handleLancerML}
+            isLoading={isLoading}
+            >
                 <Rocket className="w-4 h-4" />
                 Lancer l'analyse ML
-              </>
-            )}
-          </button>
+          </Button>
         </div>
 
       </div>
