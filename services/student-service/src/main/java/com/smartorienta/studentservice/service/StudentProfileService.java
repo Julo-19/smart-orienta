@@ -27,6 +27,8 @@ public class StudentProfileService {
         StudentProfile profile = new StudentProfile();
         profile.setUserId(userId);
         profile.setEtablissement(request.getEtablissement());
+        profile.setMatricule(request.getMatricule());
+        profile.setNiveau(request.getNiveau());
         profile.setRegion(request.getRegion());
         profile.setDateNaissance(request.getDateNaissance());
         profile.setSexe(request.getSexe());

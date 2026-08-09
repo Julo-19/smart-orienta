@@ -26,6 +26,10 @@ public class StudentProfile {
     @Column(nullable = false)
     private String etablissement;
 
+    private String matricule;
+
+    private String niveau;
+
 
     private String region;
 
