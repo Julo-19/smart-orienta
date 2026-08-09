@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
                 columnNames = {
                         "student_profile_id",
                         "matiere_id",
-                        "trimestre"
+                        "semestre"
                 })
 )
 @Getter
@@ -28,7 +28,7 @@ public class Note {
 
     @Column(nullable = false)
     // semestre 1 ou 2
-    private int trimestre;
+    private int semestre;
 
     @ManyToOne
     @JoinColumn(name = "student_profile_id", nullable = false)
