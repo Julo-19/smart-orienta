@@ -15,6 +15,10 @@ spring:
               uri: lb://auth-service
               predicates:
                 - Path=/api/auth/**
+            - id: student-service-route
+              uri: lb://student-service
+              predicates:
+                - Path=/api/students/**, /api/series/**
 
 eureka:
   client:
