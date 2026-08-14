@@ -1,6 +1,7 @@
 package com.smartorienta.studentservice.controller;
 
 import com.smartorienta.studentservice.dto.ProfileRequest;
+import com.smartorienta.studentservice.dto.ProfileResponse;
 import com.smartorienta.studentservice.entity.StudentProfile;
 import com.smartorienta.studentservice.service.JwtService;
 import com.smartorienta.studentservice.service.StudentProfileService;
@@ -16,15 +17,21 @@ public class StudentProfileController {
 
     private final StudentProfileService studentProfileService;
     private final JwtService jwtService;
-
     @PostMapping("/profile")
-    public ResponseEntity<StudentProfile> createProfile(
+    public ResponseEntity<ProfileResponse> createProfile(
             @RequestHeader("Authorization") String authHeader,
             @RequestBody ProfileRequest request) {
 
         Long userId = jwtService.extractUserId(authHeader.substring(7));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(studentProfileService.createProfile(userId, request));
+    }
 
-        StudentProfile profile = studentProfileService.createProfile(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(profile);
+    @GetMapping("/profile")
+    public ResponseEntity<ProfileResponse> getMonProfil(
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long userId = jwtService.extractUserId(authHeader.substring(7));
+        return ResponseEntity.ok(studentProfileService.getMonProfil(userId));
     }
 }
