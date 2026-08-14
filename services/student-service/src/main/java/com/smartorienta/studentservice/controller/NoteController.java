@@ -1,5 +1,6 @@
 package com.smartorienta.studentservice.controller;
 
+import com.smartorienta.studentservice.dto.BulletinResponse;
 import com.smartorienta.studentservice.dto.NoteRequest;
 import com.smartorienta.studentservice.entity.Note;
 import com.smartorienta.studentservice.service.JwtService;
@@ -26,5 +27,15 @@ public class NoteController {
 
         Note note = noteService.saisirNote(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(note);
+    }
+
+    @GetMapping("/{semestre}")
+    public ResponseEntity<BulletinResponse> getBulletin(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable int semestre) {
+
+        Long userId = jwtService.extractUserId(authHeader.substring(7));
+
+        return ResponseEntity.ok(noteService.getBulletin(userId, semestre));
     }
 }

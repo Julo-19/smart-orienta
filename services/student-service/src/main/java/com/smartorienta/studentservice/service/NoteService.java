@@ -1,6 +1,8 @@
 package com.smartorienta.studentservice.service;
 
+import com.smartorienta.studentservice.dto.BulletinResponse;
 import com.smartorienta.studentservice.dto.NoteRequest;
+import com.smartorienta.studentservice.dto.NoteResponse;
 import com.smartorienta.studentservice.entity.Matiere;
 import com.smartorienta.studentservice.entity.Note;
 import com.smartorienta.studentservice.entity.StudentProfile;
@@ -10,6 +12,8 @@ import com.smartorienta.studentservice.repository.NoteRepository;
 import com.smartorienta.studentservice.repository.StudentProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -54,5 +58,54 @@ public class NoteService {
         note.setValeur(request.getValeur());
 
         return noteRepository.save(note);
+    }
+
+    public BulletinResponse getBulletin(Long userId, int semestre) {
+
+        if (semestre != 1 && semestre != 2) {
+            throw new BusinessException("Le semestre doit être 1 ou 2");
+        }
+
+        StudentProfile profile = studentProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException("Aucun profil trouvé"));
+
+        // Les notes du semestre demandé
+        List<Note> notes = noteRepository.findByStudentProfileId(profile.getId())
+                .stream()
+                .filter(n -> n.getSemestre() == semestre)
+                .toList();
+
+        // Calcul de la moyenne pondérée
+        double sommePonderee = 0;
+        int sommeCoefficients = 0;
+
+        for (Note note : notes) {
+            int coef = note.getMatiere().getCoefficient();
+            sommePonderee += note.getValeur() * coef;
+            sommeCoefficients += coef;
+        }
+
+        double moyenne = (sommeCoefficients == 0) ? 0 : sommePonderee / sommeCoefficients;
+        moyenne = Math.round(moyenne * 100.0) / 100.0;   // arrondi à 2 décimales
+
+        // Transformation en DTOs
+        List<NoteResponse> notesResponse = notes.stream()
+                .map(n -> new NoteResponse(
+                        n.getId(),
+                        n.getMatiere().getNom(),
+                        n.getMatiere().getCoefficient(),
+                        n.getValeur()))
+                .toList();
+
+        int matieresAttendues = matiereRepository.findBySerieId(profile.getSerie().getId()).size();
+
+        return new BulletinResponse(
+                semestre,
+                profile.getSerie().getCode(),
+                notesResponse,
+                moyenne,
+                sommeCoefficients,
+                notes.size(),
+                matieresAttendues);
     }
 }
