@@ -53,4 +53,14 @@ public class VerificationTokenService {
         return email;
     }
 
+    public String generateSetupToken(String email) {
+        String token = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(
+                "reset:" + token,
+                email,
+                Duration.ofHours(24)
+        );
+        return token;
+    }
+
 }

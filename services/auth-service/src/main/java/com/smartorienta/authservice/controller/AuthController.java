@@ -6,6 +6,7 @@ import com.smartorienta.authservice.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -53,6 +54,13 @@ public class AuthController {
     public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok("Mot de passe réinitialisé avec succès");
+    }
+
+    @PostMapping("/admin/conseillers")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<User> creerConseiller(@RequestBody CreateConseillerRequest request) {
+        User conseiller = authService.creerConseiller(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(conseiller);
     }
 
 }

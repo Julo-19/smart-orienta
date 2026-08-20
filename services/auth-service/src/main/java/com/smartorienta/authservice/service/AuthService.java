@@ -1,9 +1,6 @@
 package com.smartorienta.authservice.service;
 
-import com.smartorienta.authservice.dto.AuthResponse;
-import com.smartorienta.authservice.dto.LoginRequest;
-import com.smartorienta.authservice.dto.RefreshRequest;
-import com.smartorienta.authservice.dto.RegisterRequest;
+import com.smartorienta.authservice.dto.*;
 import com.smartorienta.authservice.entity.Role;
 import com.smartorienta.authservice.entity.User;
 import com.smartorienta.authservice.exception.EmailAlreadyUsedException;
@@ -13,6 +10,8 @@ import com.smartorienta.authservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -125,6 +124,31 @@ public class AuthService {
         userRepository.save(user);
 
         refreshTokenService.delete(email);
+    }
+
+
+    //Creer Compte Conseiller
+    public User creerConseiller(CreateConseillerRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new EmailAlreadyUsedException("Cet email est déjà utilisé");
+        }
+
+        User user = new User();
+        user.setEmail(request.getEmail());
+        // mot de passe temporaire aléatoire : inutilisable, il sera remplacé
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setNom(request.getNom());
+        user.setPrenom(request.getPrenom());
+        user.setRole(Role.CONSEILLER);
+        user.setEmailVerified(true);   // compte créé par l'administration
+
+        User saved = userRepository.save(user);
+
+        String token = verificationTokenService.generateSetupToken(saved.getEmail());
+        emailService.sendConseillerWelcomeEmail(saved.getEmail(), saved.getPrenom(), token);
+
+        return saved;
     }
 
 }

@@ -55,4 +55,24 @@ public class EmailService {
 
         mailSender.send(message);
     }
+    public void sendConseillerWelcomeEmail(String to, String prenom, String token) {
+
+        String link = frontendUrl + "/reset-password?token=" + token;
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(from);
+        message.setTo(to);
+        message.setSubject("SmartOrientation - Votre compte conseiller a été créé");
+        message.setText(
+                "Bonjour " + prenom + ",\n\n"
+                        + "Un compte conseiller vient d'être créé pour vous sur la plateforme SmartOrientation.\n\n"
+                        + "Votre identifiant de connexion est votre adresse email : " + to + "\n\n"
+                        + "Pour définir votre mot de passe et accéder à la plateforme, cliquez sur ce lien :\n"
+                        + link + "\n\n"
+                        + "Ce lien expire dans 24 heures.\n\n"
+                        + "Une fois connecté, pensez à compléter votre profil (spécialité, établissement)."
+        );
+
+        mailSender.send(message);
+    }
 }

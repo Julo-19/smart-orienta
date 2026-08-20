@@ -58,6 +58,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/smartorienta_auth
       SPRING_DATA_REDIS_HOST: redis
       SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
     depends_on:
       mysql:
         condition: service_healthy
