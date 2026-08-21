@@ -16,6 +16,7 @@ public class StudentProfileService {
 
     private final StudentProfileRepository studentProfileRepository;
     private final SerieRepository serieRepository;
+    private final AssignationService assignationService;
 
     public ProfileResponse createProfile(Long userId, ProfileRequest request) {
 
@@ -35,6 +36,10 @@ public class StudentProfileService {
         profile.setDateNaissance(request.getDateNaissance());
         profile.setSexe(request.getSexe());
         profile.setSerie(serie);
+
+        // Assignation automatique d'un conseiller
+        Long conseillerId = assignationService.trouverConseiller(profile);
+        profile.setConseillerId(conseillerId);
 
         StudentProfile saved = studentProfileRepository.save(profile);
         return toResponse(saved);

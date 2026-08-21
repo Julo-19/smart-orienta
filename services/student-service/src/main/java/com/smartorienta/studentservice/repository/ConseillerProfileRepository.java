@@ -13,4 +13,8 @@ public interface ConseillerProfileRepository extends JpaRepository<ConseillerPro
     boolean existsByUserId(Long userId);
 
     List<ConseillerProfile> findByEtablissement(String etablissement);
+
+    List<ConseillerProfile> findByEtablissementAndSpecialite(String etablissement, String specialite);
+
+    List<ConseillerProfile> findBySpecialite(String specialite);
 }
