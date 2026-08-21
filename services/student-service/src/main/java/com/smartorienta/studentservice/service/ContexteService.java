@@ -33,4 +33,12 @@ public class ContexteService {
 
         return contexteRepository.save(contexte);
     }
+
+    public Contexte getMonContexte(Long userId) {
+        StudentProfile profile = studentProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException("Aucun profil trouvé"));
+
+        return contexteRepository.findByStudentProfileId(profile.getId())
+                .orElseThrow(() -> new BusinessException("Aucun contexte enregistré"));
+    }
 }

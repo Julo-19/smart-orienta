@@ -84,4 +84,12 @@ public class RiasecService {
                 .map(Map.Entry::getKey)
                 .reduce("", String::concat);
     }
+
+    public ProfilRiasec getMonProfil(Long userId) {
+        StudentProfile profile = studentProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException("Aucun profil trouvé"));
+
+        return profilRiasecRepository.findByStudentProfileId(profile.getId())
+                .orElseThrow(() -> new BusinessException("Aucun profil RIASEC enregistré"));
+    }
 }

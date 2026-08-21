@@ -27,4 +27,12 @@ public class RiasecController {
         ProfilRiasec riasec = riasecService.enregistrer(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(riasec);
     }
+
+    @GetMapping
+    public ResponseEntity<ProfilRiasec> getMonRiasec(
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long userId = jwtService.extractUserId(authHeader.substring(7));
+        return ResponseEntity.ok(riasecService.getMonProfil(userId));
+    }
 }
