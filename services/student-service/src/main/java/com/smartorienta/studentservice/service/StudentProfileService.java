@@ -5,6 +5,7 @@ import com.smartorienta.studentservice.dto.ProfileResponse;
 import com.smartorienta.studentservice.entity.Serie;
 import com.smartorienta.studentservice.entity.StudentProfile;
 import com.smartorienta.studentservice.exception.BusinessException;
+import com.smartorienta.studentservice.repository.NoteRepository;
 import com.smartorienta.studentservice.repository.SerieRepository;
 import com.smartorienta.studentservice.repository.StudentProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ public class StudentProfileService {
 
     private final StudentProfileRepository studentProfileRepository;
     private final SerieRepository serieRepository;
+    private final NoteRepository noteRepository;
     private final AssignationService assignationService;
 
     public ProfileResponse createProfile(Long userId, ProfileRequest request) {
@@ -64,5 +66,36 @@ public class StudentProfileService {
                 p.getSerie() != null ? p.getSerie().getCode() : null,
                 p.getSerie() != null ? p.getSerie().getLibelle() : null,
                 p.getConseillerId());
+    }
+
+    public ProfileResponse updateProfile(Long userId, ProfileRequest request) {
+
+        StudentProfile profile = studentProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException("Aucun profil trouvé"));
+
+        Long ancienneSerieId = profile.getSerie() != null ? profile.getSerie().getId() : null;
+
+        // Changement de série éventuel
+        if (request.getSerieId() != null && !request.getSerieId().equals(ancienneSerieId)) {
+
+            Serie nouvelleSerie = serieRepository.findById(request.getSerieId())
+                    .orElseThrow(() -> new BusinessException("Série introuvable"));
+
+            profile.setSerie(nouvelleSerie);
+
+            // Les notes des matières qui ne sont plus au programme sont retirées
+            noteRepository.findByStudentProfileId(profile.getId()).stream()
+                    .filter(n -> !n.getMatiere().getSerie().getId().equals(nouvelleSerie.getId()))
+                    .forEach(noteRepository::delete);
+        }
+
+        if (request.getEtablissement() != null)  profile.setEtablissement(request.getEtablissement());
+        if (request.getMatricule() != null)      profile.setMatricule(request.getMatricule());
+        if (request.getNiveau() != null)         profile.setNiveau(request.getNiveau());
+        if (request.getRegion() != null)         profile.setRegion(request.getRegion());
+        if (request.getDateNaissance() != null)  profile.setDateNaissance(request.getDateNaissance());
+        if (request.getSexe() != null)           profile.setSexe(request.getSexe());
+
+        return toResponse(studentProfileRepository.save(profile));
     }
 }

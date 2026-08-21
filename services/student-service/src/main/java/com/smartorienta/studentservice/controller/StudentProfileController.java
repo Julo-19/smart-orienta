@@ -34,4 +34,13 @@ public class StudentProfileController {
         Long userId = jwtService.extractUserId(authHeader.substring(7));
         return ResponseEntity.ok(studentProfileService.getMonProfil(userId));
     }
+
+    @PutMapping("/profile")
+    public ResponseEntity<ProfileResponse> updateProfile(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody ProfileRequest request) {
+
+        Long userId = jwtService.extractUserId(authHeader.substring(7));
+        return ResponseEntity.ok(studentProfileService.updateProfile(userId, request));
+    }
 }
