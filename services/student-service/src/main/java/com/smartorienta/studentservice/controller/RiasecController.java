@@ -1,5 +1,6 @@
 package com.smartorienta.studentservice.controller;
 
+import com.smartorienta.studentservice.dto.QuestionnaireRequest;
 import com.smartorienta.studentservice.dto.RiasecRequest;
 import com.smartorienta.studentservice.entity.ProfilRiasec;
 import com.smartorienta.studentservice.service.JwtService;
@@ -34,5 +35,15 @@ public class RiasecController {
 
         Long userId = jwtService.extractUserId(authHeader.substring(7));
         return ResponseEntity.ok(riasecService.getMonProfil(userId));
+    }
+
+    @PostMapping("/reponses")
+    public ResponseEntity<ProfilRiasec> soumettreQuestionnaire(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody QuestionnaireRequest request) {
+
+        Long userId = jwtService.extractUserId(authHeader.substring(7));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(riasecService.enregistrerDepuisQuestionnaire(userId, request));
     }
 }
