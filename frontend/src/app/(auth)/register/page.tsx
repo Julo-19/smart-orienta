@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { register } from "@/lib/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -36,20 +37,26 @@ export default function RegisterPage() {
     return e;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
-
+    setErrors({});
     setIsLoading(true);
-    // TODO : appel API Spring Boot Auth Service
-    // POST /api/auth/register → { token, user }
-    await new Promise((r) => setTimeout(r, 1200));
-    router.push("/lyceen/academique");
-    setIsLoading(false);
+
+    try {
+      await register(form.email, form.motDePasse, form.nom, form.prenom);
+      router.push("/login?inscription=ok");
+    } catch (err) {
+      setErrors({
+        general: err instanceof Error ? err.message : "Inscription impossible",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const fields = [
