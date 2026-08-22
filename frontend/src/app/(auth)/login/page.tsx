@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { login, saveSession, homePathFor } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,15 +25,15 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // TODO : appel API Spring Boot Auth Service
-    // POST /api/auth/login → { token, role, user }
-    await new Promise((r) => setTimeout(r, 1000));
-
-    // Mock — redirection selon rôle
-    // En prod : router.push selon data.role retourné par l'API
-    router.push("/lyceen/academique");
-
-    setIsLoading(false);
+    try {
+      const auth = await login(email, motDePasse);
+      saveSession(auth);
+      router.push(homePathFor(auth.role));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Connexion impossible");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -165,7 +166,7 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* Illustration — placeholder lycéen */}
+        {/* Illustration */}
         <div className="flex-1 flex items-center justify-center">
           <Image
             src="/img2.png"
@@ -174,7 +175,7 @@ export default function LoginPage() {
             height={450}
             className="object-contain drop-shadow-xl"
             priority
-            />
+          />
         </div>
       </div>
 
