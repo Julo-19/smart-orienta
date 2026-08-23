@@ -3,7 +3,9 @@ package com.smartorienta.orientationservice.controller;
 import com.smartorienta.orientationservice.dto.ModificationRequest;
 import com.smartorienta.orientationservice.dto.RejetRequest;
 import com.smartorienta.orientationservice.dto.ValidationRequest;
+import com.smartorienta.orientationservice.entity.Orientation;
 import com.smartorienta.orientationservice.entity.Recommandation;
+import com.smartorienta.orientationservice.repository.OrientationRepository;
 import com.smartorienta.orientationservice.service.JwtService;
 import com.smartorienta.orientationservice.service.RecommandationService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class RecommandationController {
 
     private final RecommandationService recommandationService;
     private final JwtService jwtService;
+    private final OrientationRepository orientationRepository;
 
     // ─────────── Côté lycéen ───────────
 
@@ -88,5 +91,12 @@ public class RecommandationController {
         Long conseillerId = jwtService.extractUserId(authHeader.substring(7));
         return ResponseEntity.ok(
                 recommandationService.rejeter(id, conseillerId, request.getMotif()));
+    }
+
+    /** Liste des filières disponibles, pour le choix du conseiller. */
+    @GetMapping("/filieres")
+    @PreAuthorize("hasAnyRole('CONSEILLER','ADMIN')")
+    public ResponseEntity<List<Orientation>> filieres() {
+        return ResponseEntity.ok(orientationRepository.findAllByOrderByCategorieAscLibelleAsc());
     }
 }

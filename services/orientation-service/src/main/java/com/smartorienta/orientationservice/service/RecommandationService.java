@@ -3,9 +3,11 @@ package com.smartorienta.orientationservice.service;
 import com.smartorienta.orientationservice.client.StudentClient;
 import com.smartorienta.orientationservice.dto.DossierMLResponse;
 import com.smartorienta.orientationservice.dto.PredictionResponse;
+import com.smartorienta.orientationservice.entity.Orientation;
 import com.smartorienta.orientationservice.entity.Recommandation;
 import com.smartorienta.orientationservice.entity.StatutRecommandation;
 import com.smartorienta.orientationservice.exception.BusinessException;
+import com.smartorienta.orientationservice.repository.OrientationRepository;
 import com.smartorienta.orientationservice.repository.RecommandationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class RecommandationService {
     private final RecommandationRepository recommandationRepository;
     private final PredictionService predictionService;
     private final StudentClient studentClient;
+    private final OrientationRepository orientationRepository;
 
     /**
      * Génère une recommandation pour un lycéen : récupère son dossier auprès
@@ -90,10 +93,17 @@ public class RecommandationService {
             throw new BusinessException("La nouvelle filière est obligatoire");
         }
 
+        // La filière retenue doit appartenir au référentiel
+        Orientation filiere = orientationRepository.findByLibelle(nouvelleBranche)
+                .orElseThrow(() -> new BusinessException(
+                        "Filière inconnue : « " + nouvelleBranche + " ». "
+                                + "Consultez la liste des filières disponibles."));
+
         Recommandation reco = chargerEnAttente(recoId);
 
         reco.setStatut(StatutRecommandation.MODIFIEE);
-        reco.setBrancheFinale(nouvelleBranche);       // la proposition initiale est conservée
+        reco.setBrancheFinale(nouvelleBranche);
+        reco.setCategorie(filiere.getCategorie());
         reco.setConseillerUserId(conseillerUserId);
         reco.setCommentaireConseiller(commentaire);
         reco.setDateDecision(LocalDateTime.now());
