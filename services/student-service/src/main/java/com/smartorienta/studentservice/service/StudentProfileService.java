@@ -63,6 +63,7 @@ public class StudentProfileService {
                 p.getRegion(),
                 p.getDateNaissance(),
                 p.getSexe(),
+                p.getSerie() != null ? p.getSerie().getId() : null,
                 p.getSerie() != null ? p.getSerie().getCode() : null,
                 p.getSerie() != null ? p.getSerie().getLibelle() : null,
                 p.getConseillerId());

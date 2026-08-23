@@ -94,6 +94,7 @@ public class ConseillerProfileService {
                 profile.getId(), profile.getUserId(), profile.getEtablissement(),
                 profile.getMatricule(), profile.getNiveau(), profile.getRegion(),
                 profile.getDateNaissance(), profile.getSexe(),
+                profile.getSerie() != null ? profile.getSerie().getId() : null,
                 profile.getSerie() != null ? profile.getSerie().getCode() : null,
                 profile.getSerie() != null ? profile.getSerie().getLibelle() : null,
                 profile.getConseillerId());

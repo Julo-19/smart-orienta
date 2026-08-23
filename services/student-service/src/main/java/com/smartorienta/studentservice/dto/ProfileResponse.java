@@ -19,6 +19,7 @@ public class ProfileResponse {
     private String region;
     private LocalDate dateNaissance;
     private String sexe;
+    private Long serieId;
     private String serieCode;
     private String serieLibelle;
     private Long conseillerId;
