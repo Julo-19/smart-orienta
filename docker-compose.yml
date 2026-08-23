@@ -81,5 +81,20 @@ services:
       eureka-server:
         condition: service_started
 
+  orientation-service:
+    build: ./services/orientation-service
+    ports:
+      - "8083:8083"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/smartorienta_orientation?createDatabaseIfNotExist=true
+      STUDENT-SERVICE_URL: http://student-service:8082
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+
 volumes:
   mysql_data:
