@@ -206,3 +206,10 @@ export interface ProfilRiasecData {
 
 export const getMonRiasec = () =>
   request<ProfilRiasecData>("/api/students/riasec");
+
+
+export const modifierProfil = (data: Partial<ProfileRequest>) =>
+  request<ProfileResponse>("/api/students/profile", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
