@@ -13,4 +13,5 @@ public interface StudentProfileRepository extends JpaRepository<StudentProfile, 
     boolean existsByUserId(Long userId);
     long countByConseillerId(Long conseillerId);
     List<StudentProfile> findByConseillerId(Long conseillerId);
+    List<StudentProfile> findByConseillerIdIsNull();
 }

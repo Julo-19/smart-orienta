@@ -75,4 +75,24 @@ public class AssignationService {
             default -> null;
         };
     }
+
+    /**
+     * Attribue un conseiller aux profils qui n'en ont pas encore.
+     * Nécessaire lorsque des lycéens se sont inscrits avant qu'un conseiller
+     * ne dispose d'un profil.
+     */
+    public int assignerLesProfilsSansConseiller() {
+        List<StudentProfile> orphelins = studentProfileRepository.findByConseillerIdIsNull();
+
+        int assignes = 0;
+        for (StudentProfile profile : orphelins) {
+            Long conseillerId = trouverConseiller(profile);
+            if (conseillerId != null) {
+                profile.setConseillerId(conseillerId);
+                studentProfileRepository.save(profile);
+                assignes++;
+            }
+        }
+        return assignes;
+    }
 }

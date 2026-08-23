@@ -2,11 +2,11 @@ package com.smartorienta.studentservice.service;
 
 import com.smartorienta.studentservice.dto.*;
 import com.smartorienta.studentservice.entity.ConseillerProfile;
+import com.smartorienta.studentservice.entity.StudentProfile;
 import com.smartorienta.studentservice.exception.BusinessException;
 import com.smartorienta.studentservice.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.smartorienta.studentservice.entity.StudentProfile;
 
 import java.util.List;
 
@@ -19,7 +19,13 @@ public class ConseillerProfileService {
     private final NoteRepository noteRepository;
     private final ProfilRiasecRepository profilRiasecRepository;
     private final ContexteRepository contexteRepository;
+    private final AssignationService assignationService;
 
+    /**
+     * Création ou mise à jour du profil d'un conseiller.
+     * L'enregistrement déclenche l'attribution des lycéens qui n'avaient
+     * pas encore de conseiller, faute de candidat disponible.
+     */
     public ConseillerProfile enregistrer(Long userId, ConseillerProfileRequest request) {
 
         if (request.getEtablissement() == null || request.getEtablissement().isBlank()) {
@@ -34,7 +40,11 @@ public class ConseillerProfileService {
         profile.setEtablissement(request.getEtablissement());
         profile.setSpecialite(request.getSpecialite());
 
-        return conseillerProfileRepository.save(profile);
+        ConseillerProfile saved = conseillerProfileRepository.save(profile);
+
+        assignationService.assignerLesProfilsSansConseiller();
+
+        return saved;
     }
 
     public ConseillerProfile getMonProfil(Long userId) {
@@ -42,6 +52,7 @@ public class ConseillerProfileService {
                 .orElseThrow(() -> new BusinessException("Aucun profil conseiller trouvé"));
     }
 
+    /** Liste allégée des lycéens suivis par le conseiller. */
     public List<EtudiantListItem> getMesEtudiants(Long conseillerUserId) {
 
         return studentProfileRepository.findByConseillerId(conseillerUserId).stream()
@@ -56,12 +67,12 @@ public class ConseillerProfileService {
                 .toList();
     }
 
+    /** Dossier complet d'un lycéen, réservé au conseiller auquel il est assigné. */
     public DossierEtudiant getDossierEtudiant(Long conseillerUserId, Long profileId) {
 
         StudentProfile profile = studentProfileRepository.findById(profileId)
                 .orElseThrow(() -> new BusinessException("Étudiant introuvable"));
 
-        // Contrôle : le conseiller ne peut consulter que ses propres étudiants
         if (!conseillerUserId.equals(profile.getConseillerId())) {
             throw new BusinessException("Cet étudiant ne vous est pas assigné");
         }
@@ -91,9 +102,14 @@ public class ConseillerProfileService {
                 .orElse(null);
 
         ProfileResponse profilDto = new ProfileResponse(
-                profile.getId(), profile.getUserId(), profile.getEtablissement(),
-                profile.getMatricule(), profile.getNiveau(), profile.getRegion(),
-                profile.getDateNaissance(), profile.getSexe(),
+                profile.getId(),
+                profile.getUserId(),
+                profile.getEtablissement(),
+                profile.getMatricule(),
+                profile.getNiveau(),
+                profile.getRegion(),
+                profile.getDateNaissance(),
+                profile.getSexe(),
                 profile.getSerie() != null ? profile.getSerie().getId() : null,
                 profile.getSerie() != null ? profile.getSerie().getCode() : null,
                 profile.getSerie() != null ? profile.getSerie().getLibelle() : null,

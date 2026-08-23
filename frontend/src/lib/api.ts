@@ -213,3 +213,68 @@ export const modifierProfil = (data: Partial<ProfileRequest>) =>
     method: "PUT",
     body: JSON.stringify(data),
   });
+
+
+  // ─────────── Conseiller ───────────
+
+export interface ConseillerProfileData {
+  id: number;
+  userId: number;
+  etablissement: string;
+  specialite: string;
+}
+
+export interface EtudiantListItem {
+  id: number;
+  userId: number;
+  matricule: string;
+  etablissement: string;
+  niveau: string;
+  serieCode: string;
+  nombreNotes: number;
+}
+
+export interface DossierEtudiant {
+  profil: ProfileResponse;
+  notes: NoteResponse[];
+  riasec: ProfilRiasecData | null;
+  contexte: ContexteData | null;
+}
+
+export const getMonProfilConseiller = () =>
+  request<ConseillerProfileData>("/api/conseillers/profile");
+
+export const enregistrerProfilConseiller = (data: { etablissement: string; specialite: string }) =>
+  request<ConseillerProfileData>("/api/conseillers/profile", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const getMesEtudiants = () =>
+  request<EtudiantListItem[]>("/api/conseillers/etudiants");
+
+export const getDossierEtudiant = (profileId: number) =>
+  request<DossierEtudiant>(`/api/conseillers/etudiants/${profileId}`);
+
+// ─────────── Décisions sur les recommandations ───────────
+
+export const getRecommandationsEnAttente = () =>
+  request<Recommandation[]>("/api/orientations/en-attente");
+
+export const validerRecommandation = (id: number, commentaire: string) =>
+  request<Recommandation>(`/api/orientations/${id}/valider`, {
+    method: "POST",
+    body: JSON.stringify({ commentaire }),
+  });
+
+export const modifierRecommandation = (id: number, nouvelleBranche: string, commentaire: string) =>
+  request<Recommandation>(`/api/orientations/${id}/modifier`, {
+    method: "POST",
+    body: JSON.stringify({ nouvelleBranche, commentaire }),
+  });
+
+export const rejeterRecommandation = (id: number, motif: string) =>
+  request<Recommandation>(`/api/orientations/${id}/rejeter`, {
+    method: "POST",
+    body: JSON.stringify({ motif }),
+  });
