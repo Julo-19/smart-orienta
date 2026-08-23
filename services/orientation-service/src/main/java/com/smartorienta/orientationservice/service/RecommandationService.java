@@ -33,6 +33,7 @@ public class RecommandationService {
         try {
             dossier = studentClient.getDossier(etudiantUserId);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new BusinessException("Impossible de récupérer le dossier de l'étudiant");
         }
 
