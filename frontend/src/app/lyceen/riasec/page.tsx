@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import StepIndicator from "@/components/lyceen/StepIndicator";
 import RiasecRadar from "@/components/lyceen/RiasecRadar";
 import Button from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import {
-  QUESTIONS,
   DIMENSION_COLORS,
   DIMENSION_LABELS,
   LIKERT_LABELS,
   Dimension,
 } from "@/lib/riasecQuestions";
-
+import { getQuestionsRiasec, soumettreRiasec, QuestionRiasec } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 
 // Dimensions RIASEC uniquement (pas les comportementales)
 const RIASEC_DIMS: Dimension[] = ["R", "I", "A", "S", "E", "C"];
@@ -21,25 +21,33 @@ const RIASEC_DIMS: Dimension[] = ["R", "I", "A", "S", "E", "C"];
 export default function RiasecPage() {
   const router = useRouter();
 
-  // Réponses : { [questionId]: valeur 1-5 }
+  const [questions, setQuestions] = useState<QuestionRiasec[]>([]);
   const [reponses, setReponses] = useState<Record<number, number>>({});
-
-  // Index de la question courante
   const [currentIndex, setCurrentIndex] = useState(0);
- 
-  const [shuffled] = useState<typeof QUESTIONS>(
-  () => [...QUESTIONS].sort(() => Math.random() - 0.5)
-);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
+  // Chargement des questions depuis l'API, puis mélange
+  useEffect(() => {
+    if (!getToken()) {
+      router.push("/login");
+      return;
+    }
+    getQuestionsRiasec()
+      .then((qs) => setQuestions([...qs].sort(() => Math.random() - 0.5)))
+      .catch(() => setError("Impossible de charger le questionnaire"));
+  }, [router]);
 
-  const currentQuestion = shuffled[currentIndex];
-  const totalReponses   = Object.keys(reponses).length;
-  const progression     = Math.round((totalReponses / QUESTIONS.length) * 100);
-  const toutesRepondues = totalReponses === QUESTIONS.length;
+  const currentQuestion = questions[currentIndex];
+  const totalReponses = Object.keys(reponses).length;
+  const progression = questions.length
+    ? Math.round((totalReponses / questions.length) * 100)
+    : 0;
+  const toutesRepondues = questions.length > 0 && totalReponses === questions.length;
 
-  // Calcul des scores RIASEC en temps réel
+  // Scores RIASEC calculés localement pour l'affichage du radar
   const scores = useMemo(() => {
-    const s: Record<Dimension, { total: number; count: number }> = {
+    const s: Record<string, { total: number; count: number }> = {
       R: { total: 0, count: 0 },
       I: { total: 0, count: 0 },
       A: { total: 0, count: 0 },
@@ -48,9 +56,8 @@ export default function RiasecPage() {
       C: { total: 0, count: 0 },
     };
 
-    QUESTIONS.forEach((q) => {
-      // On calcule uniquement pour les 30 questions RIASEC (id 1-30)
-      if (q.id <= 30 && reponses[q.id] !== undefined) {
+    questions.forEach((q) => {
+      if (RIASEC_DIMS.includes(q.dimension as Dimension) && reponses[q.id] !== undefined) {
         s[q.dimension].total += reponses[q.id];
         s[q.dimension].count += 1;
       }
@@ -59,30 +66,67 @@ export default function RiasecPage() {
     return Object.fromEntries(
       RIASEC_DIMS.map((dim) => [
         dim,
-        s[dim].count > 0
-          ? Math.round((s[dim].total / s[dim].count) * 10) / 10
-          : 0,
+        s[dim].count > 0 ? Math.round((s[dim].total / s[dim].count) * 10) / 10 : 0,
       ])
     ) as Record<Dimension, number>;
-  }, [reponses]);
+  }, [reponses, questions]);
 
   const handleReponse = (valeur: number) => {
     setReponses((prev) => ({ ...prev, [currentQuestion.id]: valeur }));
-    // Avance automatiquement à la question suivante
-    if (currentIndex < QUESTIONS.length - 1) {
+    if (currentIndex < questions.length - 1) {
       setTimeout(() => setCurrentIndex((i) => i + 1), 300);
     }
   };
 
-  const handleContinuer = () => {
-    router.push("/lyceen/contexte");
+  const handleContinuer = async () => {
+    setError("");
+    setIsLoading(true);
+    try {
+      const liste = Object.entries(reponses).map(([questionId, valeur]) => ({
+        questionId: Number(questionId),
+        valeur,
+      }));
+      await soumettreRiasec(liste);
+      router.push("/lyceen/contexte");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enregistrement impossible");
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Couleur et libellé, avec repli pour les dimensions comportementales
+  const couleurDe = (dimension: string) =>
+    DIMENSION_COLORS[dimension as Dimension] ?? "#9CA3AF";
+
+  const libelleDe = (dimension: string) =>
+    DIMENSION_LABELS[dimension as Dimension] ?? dimension;
+
+  // Écran d'attente pendant le chargement
+  if (!currentQuestion) {
+    return (
+      <div>
+        <StepIndicator currentStep={2} />
+        <div className="max-w-5xl mx-auto px-6 py-12 text-center text-gray-400">
+          {error || "Chargement du questionnaire…"}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <StepIndicator currentStep={2} />
 
       <div className="max-w-5xl mx-auto px-6 pb-12">
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm
+            rounded-lg px-4 py-3 mb-5">
+            {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* ── COLONNE GAUCHE — Questions ── */}
@@ -95,11 +139,10 @@ export default function RiasecPage() {
                   Progression
                 </span>
                 <span className="text-xs font-bold text-blue-600">
-                  {totalReponses}/34 réponses
+                  {totalReponses}/{questions.length} réponses
                 </span>
               </div>
 
-              {/* Barre colorée */}
               <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                 <div
                   className="h-2 rounded-full transition-all duration-300"
@@ -112,7 +155,7 @@ export default function RiasecPage() {
 
               {/* Carrés de progression */}
               <div className="flex flex-wrap gap-1.5">
-                {shuffled.map((q, idx) => {
+                {questions.map((q, idx) => {
                   const answered = reponses[q.id] !== undefined;
                   const isCurrent = idx === currentIndex;
                   return (
@@ -127,11 +170,9 @@ export default function RiasecPage() {
                         }
                       `}
                       style={{
-                        background: answered
-                          ? DIMENSION_COLORS[q.dimension]
-                          : "#E5E7EB",
+                        background: answered ? couleurDe(q.dimension) : "#E5E7EB",
                       }}
-                      title={`Q${idx + 1} — ${DIMENSION_LABELS[q.dimension]}`}
+                      title={`Q${idx + 1} — ${libelleDe(q.dimension)}`}
                     />
                   );
                 })}
@@ -141,20 +182,18 @@ export default function RiasecPage() {
             {/* Carte question */}
             <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6">
 
-              {/* Badge dimension + numéro */}
               <div className="flex items-center gap-2 mb-4">
                 <span
                   className="px-3 py-1 rounded-full text-xs font-bold text-white"
-                  style={{ background: DIMENSION_COLORS[currentQuestion.dimension] }}
+                  style={{ background: couleurDe(currentQuestion.dimension) }}
                 >
-                  • {DIMENSION_LABELS[currentQuestion.dimension]}
+                  • {libelleDe(currentQuestion.dimension)}
                 </span>
                 <span className="text-xs text-gray-400 font-medium">
-                  Question {currentIndex + 1}/{QUESTIONS.length}
+                  Question {currentIndex + 1}/{questions.length}
                 </span>
               </div>
 
-              {/* Texte question */}
               <p className="text-gray-800 font-medium text-base leading-relaxed mb-6">
                 {currentQuestion.texte}
               </p>
@@ -196,11 +235,9 @@ export default function RiasecPage() {
                 </button>
                 <button
                   onClick={() =>
-                    setCurrentIndex((i) =>
-                      Math.min(QUESTIONS.length - 1, i + 1)
-                    )
+                    setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))
                   }
-                  disabled={currentIndex === QUESTIONS.length - 1}
+                  disabled={currentIndex === questions.length - 1}
                   className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   Suivant →
@@ -225,14 +262,14 @@ export default function RiasecPage() {
           </Button>
           <div className="flex items-center gap-4">
             <span className="text-xs text-gray-400">
-              {totalReponses}/34 réponses
+              {totalReponses}/{questions.length} réponses
             </span>
             <Button
-                onClick={() => router.push("/lyceen/contexte")}
-                disabled={!toutesRepondues}
-                >
-                Continuer
-                <ArrowRight className="w-4 h-4" />
+              onClick={handleContinuer}
+              disabled={!toutesRepondues || isLoading}
+            >
+              {isLoading ? "Enregistrement…" : "Continuer"}
+              <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>

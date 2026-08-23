@@ -106,3 +106,25 @@ export const saisirNote = (data: NoteRequest) =>
 
 export const getBulletin = (semestre: number) =>
   request<BulletinResponse>(`/api/students/notes/${semestre}`);
+
+// ─────────── RIASEC ───────────
+
+export interface QuestionRiasec {
+  id: number;
+  texte: string;
+  dimension: string;
+}
+
+export interface ReponseQuestion {
+  questionId: number;
+  valeur: number;
+}
+
+export const getQuestionsRiasec = () =>
+  request<QuestionRiasec[]>("/api/riasec/questions");
+
+export const soumettreRiasec = (reponses: ReponseQuestion[]) =>
+  request<unknown>("/api/students/riasec/reponses", {
+    method: "POST",
+    body: JSON.stringify({ reponses }),
+  });

@@ -18,7 +18,7 @@ spring:
             - id: student-service-route
               uri: lb://student-service
               predicates:
-                - Path=/api/students/**, /api/series/**
+                - Path=/api/students/**, /api/series/**, /api/riasec/**
             - id: orientation-service-route
               uri: lb://orientation-service
               predicates:
