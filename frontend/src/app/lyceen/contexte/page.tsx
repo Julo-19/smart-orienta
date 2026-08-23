@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Lock, Rocket, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import StepIndicator from "@/components/lyceen/StepIndicator";
 import Button from "@/components/ui/button";
+import { enregistrerContexte } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 
 const CONTRAINTES = [
   "Contrainte financière",
@@ -29,16 +31,38 @@ export default function ContextePage() {
     );
   };
 
+    const [error, setError] = useState("");
+
   const handleLancerML = async () => {
+    setError("");
     setIsLoading(true);
-    // TODO : appel API Spring Boot
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    router.push("/lyceen/resultats");
+    try {
+      await enregistrerContexte({
+        contraintes: contraintes.join(", "),
+        passions: passion,
+        filieresRefusees: filieresRefusees,
+        messageConseiller: messageConseiller,
+      });
+      router.push("/lyceen/resultats");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enregistrement impossible");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div>
       <StepIndicator currentStep={3} />
+
+              {error && (
+          <div className="max-w-4xl mx-auto px-6 mb-5">
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm
+              rounded-lg px-4 py-3">
+              {error}
+            </div>
+          </div>
+        )}
 
       <div className="max-w-4xl mx-auto px-6 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

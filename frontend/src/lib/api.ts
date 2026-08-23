@@ -1,9 +1,27 @@
-import { getToken } from "./auth";
+import { getToken, saveSession } from "./auth";
 
 const API_URL = "http://localhost:8080";
 
+async function rafraichirToken(): Promise<boolean> {
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) return false;
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  try {
+    const res = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) return false;
+
+    saveSession(await res.json());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
   const token = getToken();
 
   const res = await fetch(`${API_URL}${path}`, {
@@ -15,11 +33,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
+  // Jeton expiré : on le renouvelle puis on rejoue une seule fois
+  if ((res.status === 401 || res.status === 403) && retry) {
+    if (await rafraichirToken()) {
+      return request<T>(path, options, false);
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Erreur ${res.status}`);
   }
-
 
   const text = await res.text();
   return text ? JSON.parse(text) : ({} as T);
@@ -33,7 +57,7 @@ export interface Serie {
 }
 
 export interface Matiere {
-  id: number;
+  matiereId: number;
   nom: string;
   coefficient: number;
 }
@@ -128,3 +152,21 @@ export const soumettreRiasec = (reponses: ReponseQuestion[]) =>
     method: "POST",
     body: JSON.stringify({ reponses }),
   });
+
+  // ─────────── Contexte ───────────
+
+export interface ContexteData {
+  contraintes: string;
+  passions: string;
+  filieresRefusees: string;
+  messageConseiller: string;
+}
+
+export const enregistrerContexte = (data: ContexteData) =>
+  request<unknown>("/api/students/contexte", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const getMonContexte = () =>
+  request<ContexteData>("/api/students/contexte");

@@ -46,7 +46,7 @@ export default function AcademiquePage() {
   const moyenne = (() => {
     let somme = 0, coefs = 0;
     for (const m of matieres) {
-      const note = notes[m.id];
+      const note = notes[m.matiereId];
       if (note === null || note === undefined) return null;
       somme += note * m.coefficient;
       coefs += m.coefficient;
@@ -60,9 +60,9 @@ export default function AcademiquePage() {
     try {
       // Enregistrement de chaque note
       for (const m of matieres) {
-        const valeur = notes[m.id];
+        const valeur = notes[m.matiereId];
         if (valeur !== null && valeur !== undefined) {
-          await saisirNote({ matiereId: m.id, valeur, semestre });
+          await saisirNote({ matiereId: m.matiereId, valeur, semestre });
         }
       }
       router.push("/lyceen/riasec");
@@ -129,11 +129,11 @@ export default function AcademiquePage() {
           </h3>
           {matieres.map((m) => (
             <NoteInput
-              key={m.id}
+              key={m.matiereId}
               matiere={m.nom}
               coefficient={m.coefficient}
-              value={notes[m.id] ?? null}
-              onChange={(val) => handleNoteChange(m.id, val)}
+              value={notes[m.matiereId] ?? null}
+              onChange={(val) => handleNoteChange(m.matiereId, val)}
             />
           ))}
         </div>
