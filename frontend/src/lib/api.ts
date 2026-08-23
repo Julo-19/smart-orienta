@@ -72,3 +72,37 @@ export const creerProfil = (data: ProfileRequest) =>
 
 export const getMonProfil = () =>
   request<ProfileResponse>("/api/students/profile");
+
+// ─────────── Notes ───────────
+
+export interface NoteRequest {
+  matiereId: number;
+  valeur: number;
+  semestre: number;
+}
+
+export interface NoteResponse {
+  id: number;
+  matiere: string;
+  coefficient: number;
+  valeur: number;
+}
+
+export interface BulletinResponse {
+  semestre: number;
+  serie: string;
+  notes: NoteResponse[];
+  moyenneGenerale: number;
+  totalCoefficients: number;
+  matieresRenseignees: number;
+  matieresAttendues: number;
+}
+
+export const saisirNote = (data: NoteRequest) =>
+  request<unknown>("/api/students/notes", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const getBulletin = (semestre: number) =>
+  request<BulletinResponse>(`/api/students/notes/${semestre}`);
