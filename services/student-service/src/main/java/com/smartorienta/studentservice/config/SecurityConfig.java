@@ -26,7 +26,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/series/**").permitAll()
                         .requestMatchers("/api/riasec/questions").permitAll()
+<<<<<<< HEAD
                         .requestMatchers("/api/students/dossier-ml/**").permitAll()
+=======
+>>>>>>> feature/riasec-questionnaire
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
