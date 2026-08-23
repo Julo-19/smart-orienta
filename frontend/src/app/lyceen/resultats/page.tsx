@@ -24,6 +24,7 @@ export default function ResultatsPage() {
   const [matieresRenseignees, setMatieresRenseignees] = useState<number | null>(null);
   const [chargement, setChargement] = useState(true);
   const [error, setError] = useState("");
+  
 
   useEffect(() => {
     if (!getToken()) {
@@ -102,7 +103,7 @@ export default function ResultatsPage() {
   const handleExportPDF = async () => {
     if (!pageRef.current) return;
     try {
-      const html2canvas = (await import("html2canvas")).default;
+      const html2canvas = (await import("html2canvas-pro")).default;
       const jsPDF = (await import("jspdf")).default;
 
       const canvas = await html2canvas(pageRef.current, {
