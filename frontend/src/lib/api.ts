@@ -170,3 +170,39 @@ export const enregistrerContexte = (data: ContexteData) =>
 
 export const getMonContexte = () =>
   request<ContexteData>("/api/students/contexte");
+
+
+// ─────────── Orientation ───────────
+
+export interface Recommandation {
+  id: number;
+  etudiantUserId: number;
+  conseillerUserId: number | null;
+  categorie: string;
+  branche: string;
+  scoreConfiance: number;
+  explication: string;
+  statut: "EN_ATTENTE" | "VALIDEE" | "MODIFIEE" | "REJETEE";
+  brancheFinale: string | null;
+  commentaireConseiller: string | null;
+  dateGeneration: string;
+  dateDecision: string | null;
+}
+
+export const demanderRecommandation = () =>
+  request<Recommandation>("/api/orientations/recommandations", { method: "POST" });
+
+export const getMesRecommandations = () =>
+  request<Recommandation[]>("/api/orientations/recommandations");
+
+// ─────────── RIASEC (consultation) ───────────
+
+export interface ProfilRiasecData {
+  scoreR: number; scoreI: number; scoreA: number;
+  scoreS: number; scoreE: number; scoreC: number;
+  codeHolland: string;
+  stress: number; social: number; autonomie: number; adaptabilite: number;
+}
+
+export const getMonRiasec = () =>
+  request<ProfilRiasecData>("/api/students/riasec");
