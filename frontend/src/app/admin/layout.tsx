@@ -8,7 +8,13 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-gray-900 text-white px-6 py-3 flex items-center justify-between">
-        <Image src="/logo.png" alt="SmartOrienta" width={100} height={28} priority />
+        <Image 
+          src="/logo.png" alt="SmartOrienta" 
+          width={200} 
+          height={50}
+          priority
+          className="p-4"
+         />
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-sm font-semibold">Admin Système</p>

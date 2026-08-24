@@ -161,7 +161,7 @@ export default function LoginPage() {
           <Image
             src="/logo.png"
             alt="SmartOrienta"
-            width={140}
+            width={200}
             height={40}
           />
         </div>
@@ -171,8 +171,8 @@ export default function LoginPage() {
           <Image
             src="/img2.png"
             alt="Lycéen SmartOrienta"
-            width={350}
-            height={450}
+            width={570}
+            height={400}
             className="object-contain drop-shadow-xl"
             priority
           />

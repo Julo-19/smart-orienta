@@ -14,30 +14,28 @@ export default function ConseillerLayout({
   const initiales = `${mockConseiller.prenom[0]}${mockConseiller.nom[0]}`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* NAVBAR CONSEILLER */}
-      <nav className="bg-gray-900 text-white  flex items-center justify-between">
-        <Image
-          src="/logo.png"
-          alt="SmartOrienta"
-          width={90}
-          height={28}
-          priority
-        />
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-sm font-semibold">
-              M. {mockConseiller.prenom} {mockConseiller.nom}
-            </p>
-            <p className="text-xs text-gray-400">{mockConseiller.specialite}</p>
-          </div>
-          <div className="w-9 h-9 bg-green-500 rounded-full flex items-center justify-center font-bold text-sm">
-            {initiales}
-          </div>
-        </div>
-      </nav>
+   <nav className="bg-gray-900 text-white flex items-center justify-between">
+  <Image
+    src="/logo.png"
+    alt="SmartOrienta"
+    width={200}
+    height={50}
+    priority
+    className="p-4"
+  />
 
-      {children}
+  <div className="flex items-center gap-3">
+    <div className="text-right">
+      <p className="text-sm font-semibold">
+        M. {mockConseiller.prenom} {mockConseiller.nom}
+      </p>
+      <p className="text-xs text-gray-400">{mockConseiller.specialite}</p>
     </div>
+
+    <div className="w-9 h-9 bg-green-500 rounded-full flex items-center justify-center font-bold text-sm">
+      {initiales}
+    </div>
+  </div>
+</nav>
   );
 }

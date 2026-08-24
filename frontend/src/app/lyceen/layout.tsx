@@ -20,7 +20,7 @@ export default function LyceenLayout({ children }: { children: React.ReactNode }
     // L'identité vient de la session ; la série, du profil scolaire
     const email = localStorage.getItem("email") ?? "";
     const nom = email.split("@")[0] || "Lycéen";
-    setNomComplet(nom);
+    setNomComplet(nom.charAt(0).toUpperCase() + nom.slice(1));
     setInitiales(nom.slice(0, 2).toUpperCase());
 
     getMonProfil()
@@ -49,7 +49,14 @@ export default function LyceenLayout({ children }: { children: React.ReactNode }
 
       <nav className="bg-gray-900 text-white px-6 py-3 flex items-center justify-between">
 
-        <Image src="/logo.png" alt="SmartOrienta" width={80} height={20} priority />
+        <Image 
+          src="/logo.png"
+          alt="SmartOrienta"
+          width={200}
+          height={50}
+          priority
+          className="p-4"
+        />
 
         <div className="relative" ref={menuRef}>
           <button

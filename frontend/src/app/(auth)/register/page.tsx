@@ -208,14 +208,14 @@ export default function RegisterPage() {
       {/* ── COLONNE DROITE — Visuel vert ── */}
       <div className="bg-green-600 flex flex-col items-center justify-between p-10">
         <div className="self-start">
-          <Image src="/logo.png" alt="SmartOrienta" width={140} height={40} />
+          <Image src="/logo.png" alt="SmartOrienta" width={200} height={40} />
         </div>
         <div className="flex-1 flex items-center justify-center">
           <Image
                 src="/img3.png"
                 alt="Lycéenne SmartOrienta"
-                width={350}
-                height={450}
+                  width={550}
+                  height={400}
                 className="object-contain drop-shadow-xl"
                 priority
             />
