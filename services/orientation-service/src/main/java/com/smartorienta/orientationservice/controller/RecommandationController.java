@@ -51,11 +51,18 @@ public class RecommandationController {
 
     // ─────────── Côté conseiller ───────────
 
-    /** Recommandations en attente de décision. */
+    /**
+     * Recommandations en attente concernant les lycéens du conseiller.
+     * Le cloisonnement est impératif : un conseiller ne doit accéder
+     * qu'aux dossiers qui lui sont confiés.
+     */
     @GetMapping("/en-attente")
     @PreAuthorize("hasRole('CONSEILLER')")
-    public ResponseEntity<List<Recommandation>> enAttente() {
-        return ResponseEntity.ok(recommandationService.toutesEnAttente());
+    public ResponseEntity<List<Recommandation>> enAttente(
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long conseillerId = jwtService.extractUserId(authHeader.substring(7));
+        return ResponseEntity.ok(recommandationService.enAttentePourConseiller(conseillerId));
     }
 
     @PostMapping("/{id}/valider")

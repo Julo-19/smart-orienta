@@ -35,7 +35,17 @@ public class RecommandationService {
      */
     public Recommandation genererPour(Long etudiantUserId) {
 
-        // 1. Récupération du dossier auprès du Student Service
+        // Une seule demande peut être en cours d'examen à la fois
+        boolean dejaEnAttente = recommandationRepository
+                .findByEtudiantUserIdOrderByDateGenerationDesc(etudiantUserId)
+                .stream()
+                .anyMatch(r -> r.getStatut() == StatutRecommandation.EN_ATTENTE);
+
+        if (dejaEnAttente) {
+            throw new BusinessException("Une recommandation est déjà en attente de validation");
+        }
+
+        // Récupération du dossier auprès du module académique
         DossierMLResponse dossier;
         try {
             dossier = studentClient.getDossier(etudiantUserId);
@@ -43,7 +53,7 @@ public class RecommandationService {
             throw new BusinessException("Impossible de récupérer le dossier de l'étudiant");
         }
 
-        // 2. Le dossier doit être exploitable
+        // Le dossier doit être exploitable
         if (dossier == null || !dossier.isComplet()) {
             String detail = (dossier != null && dossier.getMessageIncompletude() != null)
                     ? dossier.getMessageIncompletude()
@@ -51,10 +61,8 @@ public class RecommandationService {
             throw new BusinessException("Votre dossier est incomplet. " + detail);
         }
 
-        // 3. Prédiction
         PredictionResponse prediction = predictionService.predire(dossier);
 
-        // 4. Enregistrement, en attente de validation
         Recommandation reco = new Recommandation();
         reco.setEtudiantUserId(etudiantUserId);
         reco.setCategorie(prediction.getCategorie());
@@ -137,13 +145,27 @@ public class RecommandationService {
         return reco;
     }
 
-    /** File d'attente d'un conseiller. */
-    public List<Recommandation> fileAttente(Long conseillerUserId) {
-        return recommandationRepository.findByConseillerUserIdAndStatut(
-                conseillerUserId, StatutRecommandation.EN_ATTENTE);
+    /**
+     * Recommandations en attente concernant les seuls lycéens du conseiller.
+     * Le service d'orientation ignore les affectations : il interroge le
+     * module académique pour connaître les élèves qui lui sont confiés.
+     */
+    public List<Recommandation> enAttentePourConseiller(Long conseillerUserId) {
+
+        List<Long> mesEleves;
+        try {
+            mesEleves = studentClient.getEtudiantsDe(conseillerUserId);
+        } catch (Exception e) {
+            throw new BusinessException("Impossible de récupérer la liste de vos lycéens");
+        }
+
+        return recommandationRepository.findByStatut(StatutRecommandation.EN_ATTENTE)
+                .stream()
+                .filter(r -> mesEleves.contains(r.getEtudiantUserId()))
+                .toList();
     }
 
-    /** Ensemble des recommandations en attente de décision. */
+    /** Ensemble des recommandations en attente, sans filtrage. */
     public List<Recommandation> toutesEnAttente() {
         return recommandationRepository.findByStatut(StatutRecommandation.EN_ATTENTE);
     }

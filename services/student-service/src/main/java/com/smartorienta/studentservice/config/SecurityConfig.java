@@ -27,6 +27,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/series/**").permitAll()
                         .requestMatchers("/api/riasec/questions").permitAll()
                         .requestMatchers("/api/students/dossier-ml/**").permitAll()
+                        .requestMatchers("/api/students/internal/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )

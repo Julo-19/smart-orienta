@@ -10,7 +10,8 @@ import {
   X as XIcon, CheckCircle, AlertCircle, BarChart3
 } from "lucide-react";
 import {
-  creerConseiller, getStatistiques, getTousConseillers, getTousLyceens, getTousUtilisateurs,
+  creerConseiller, getStatistiques, getTousConseillers, getTousLyceens,
+  getTousUtilisateurs, reassignerConseiller,
   StatistiquesResponse, ConseillerAdmin, LyceenAdmin, UserInfo,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
@@ -35,10 +36,10 @@ const SERIE_COULEUR: Record<string, string> = {
 // L'onglet Système reste illustratif : la supervision des services
 // et les métriques des modèles ne sont pas encore exposées par l'API.
 const MICROSERVICES = [
-  { nom: "API Gateway", port: ":8080" },          { nom: "Auth Service", port: ":8081" },
-  { nom: "Student Service", port: ":8082" },      { nom: "Orientation Service", port: ":8083" },
-  { nom: "ML Service", port: ":8084" },           { nom: "Notification Service", port: ":8085" },
-  { nom: "Eureka Server", port: ":8761" },        { nom: "Config Server", port: ":8888" },
+  { nom: "API Gateway", port: ":8080" },     { nom: "Auth Service", port: ":8081" },
+  { nom: "Student Service", port: ":8082" }, { nom: "Orientation Service", port: ":8083" },
+  { nom: "ML Service", port: ":8084" },      { nom: "Notification Service", port: ":8085" },
+  { nom: "Eureka Server", port: ":8761" },   { nom: "Config Server", port: ":8888" },
 ];
 
 const PARAMS_SYSTEME = [
@@ -74,6 +75,9 @@ export default function AdminDashboard() {
   const [enCours, setEnCours] = useState(false);
   const [succes, setSucces] = useState("");
   const [erreur, setErreur] = useState("");
+
+  // Réassignation
+  const [reassignationEnCours, setReassignationEnCours] = useState<number | null>(null);
 
   const charger = async () => {
     try {
@@ -120,6 +124,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleReassigner = async (profileId: number, valeur: string) => {
+    setReassignationEnCours(profileId);
+    setErreur("");
+    try {
+      await reassignerConseiller(profileId, valeur === "" ? null : Number(valeur));
+      await charger();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Réassignation impossible");
+    } finally {
+      setReassignationEnCours(null);
+    }
+  };
+
   /** Nom complet d'un utilisateur, à partir de son identifiant. */
   const nomDe = (userId: number | null) => {
     if (userId === null) return null;
@@ -147,6 +164,10 @@ export default function AdminDashboard() {
         value, color: COULEURS[i % COULEURS.length],
       }))
     : [];
+
+  const conseillersEnAttente = utilisateurs.filter(
+    (u) => u.role === "CONSEILLER" && !conseillers.some((c) => c.userId === u.id)
+  );
 
   if (chargement) {
     return (
@@ -356,8 +377,15 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-400 mt-0.5">
               {lyceens.length} dossier{lyceens.length > 1 ? "s" : ""} ·{" "}
               {lyceens.filter((l) => l.conseillerId !== null).length} avec conseiller assigné
+              {" · "}L'attribution peut être modifiée directement dans le tableau.
             </p>
           </div>
+
+          {erreur && (
+            <div className="mb-5 p-4 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700">
+              {erreur}
+            </div>
+          )}
 
           {lyceens.length > 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -390,11 +418,24 @@ export default function AdminDashboard() {
                       <td className="px-5 py-4 text-sm text-gray-500">{l.etablissement}</td>
                       <td className="px-5 py-4 text-sm text-gray-500">{l.niveau ?? "—"}</td>
                       <td className="px-5 py-4 text-sm">
-                        {l.conseillerId !== null ? (
-                          <span className="text-gray-600">{nomDe(l.conseillerId)}</span>
-                        ) : (
-                          <span className="text-amber-600 font-medium">Non assigné</span>
-                        )}
+                        <select
+                          value={l.conseillerId ?? ""}
+                          onChange={(e) => handleReassigner(l.id, e.target.value)}
+                          disabled={reassignationEnCours === l.id || conseillers.length === 0}
+                          className={`text-sm border rounded-lg px-2 py-1.5 bg-white
+                            focus:outline-none focus:border-blue-500 transition-all
+                            disabled:opacity-50
+                            ${l.conseillerId === null
+                              ? "border-amber-300 text-amber-700"
+                              : "border-gray-200 text-gray-600"}`}
+                        >
+                          <option value="">Non assigné</option>
+                          {conseillers.map((c) => (
+                            <option key={c.userId} value={c.userId}>
+                              {nomDe(c.userId)} · {c.specialite}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                     </tr>
                   ))}
@@ -492,22 +533,17 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Comptes créés mais sans profil */}
-          {utilisateurs.filter(
-            (u) => u.role === "CONSEILLER" && !conseillers.some((c) => c.userId === u.id)
-          ).length > 0 && (
+          {conseillersEnAttente.length > 0 && (
             <div className="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50">
               <p className="text-xs font-bold text-amber-700 mb-2">
                 Comptes en attente d'activation
               </p>
               <div className="space-y-1">
-                {utilisateurs
-                  .filter((u) => u.role === "CONSEILLER" && !conseillers.some((c) => c.userId === u.id))
-                  .map((u) => (
-                    <p key={u.id} className="text-xs text-amber-600">
-                      {u.prenom} {u.nom} — {u.email} · profil non renseigné
-                    </p>
-                  ))}
+                {conseillersEnAttente.map((u) => (
+                  <p key={u.id} className="text-xs text-amber-600">
+                    {u.prenom} {u.nom} — {u.email} · profil non renseigné
+                  </p>
+                ))}
               </div>
             </div>
           )}

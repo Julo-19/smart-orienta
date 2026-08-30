@@ -354,3 +354,11 @@ export interface UserInfo {
 
 export const getTousUtilisateurs = () =>
   request<UserInfo[]>("/api/auth/admin/users");
+
+export const reassignerConseiller = (profileId: number, conseillerUserId: number | null) =>
+  request<unknown>(`/api/students/admin/${profileId}/conseiller`, {
+    method: "PUT",
+    body: JSON.stringify({ conseillerUserId }),
+  });
+
+  

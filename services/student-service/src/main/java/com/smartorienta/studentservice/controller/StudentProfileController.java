@@ -2,7 +2,7 @@ package com.smartorienta.studentservice.controller;
 
 import com.smartorienta.studentservice.dto.ProfileRequest;
 import com.smartorienta.studentservice.dto.ProfileResponse;
-import com.smartorienta.studentservice.entity.StudentProfile;
+import com.smartorienta.studentservice.dto.ReassignationRequest;
 import com.smartorienta.studentservice.service.JwtService;
 import com.smartorienta.studentservice.service.StudentProfileService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ public class StudentProfileController {
 
     private final StudentProfileService studentProfileService;
     private final JwtService jwtService;
+
     @PostMapping("/profile")
     public ResponseEntity<ProfileResponse> createProfile(
             @RequestHeader("Authorization") String authHeader,
@@ -47,9 +49,33 @@ public class StudentProfileController {
         return ResponseEntity.ok(studentProfileService.updateProfile(userId, request));
     }
 
+    // ─────────── Administration ───────────
+
     @GetMapping("/admin/tous")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> tousLesProfils() {
         return ResponseEntity.ok(studentProfileService.tousLesProfils());
+    }
+
+    /** Attribution manuelle d'un conseiller à un lycéen. */
+    @PutMapping("/admin/{profileId}/conseiller")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> reassigner(
+            @PathVariable Long profileId,
+            @RequestBody ReassignationRequest request) {
+
+        return ResponseEntity.ok(
+                studentProfileService.reassigner(profileId, request.getConseillerUserId()));
+    }
+
+    // ─────────── Appels inter-services ───────────
+
+    /**
+     * Identifiants des lycéens suivis par un conseiller.
+     * Destiné au service d'orientation, qui ignore les affectations.
+     */
+    @GetMapping("/internal/etudiants-de/{conseillerUserId}")
+    public ResponseEntity<List<Long>> etudiantsDe(@PathVariable Long conseillerUserId) {
+        return ResponseEntity.ok(studentProfileService.idsEtudiantsDe(conseillerUserId));
     }
 }
