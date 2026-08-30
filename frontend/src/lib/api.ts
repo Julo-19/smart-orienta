@@ -294,3 +294,52 @@ export const creerConseiller = (data: CreateConseillerRequest) =>
     method: "POST",
     body: JSON.stringify(data),
   });
+
+
+// ─────────── Tableau de bord admin ───────────
+
+export interface ActiviteItem {
+  recommandationId: number;
+  etudiantUserId: number;
+  branche: string;
+  statut: string;
+  date: string;
+}
+
+export interface StatistiquesResponse {
+  total: number;
+  enAttente: number;
+  validees: number;
+  modifiees: number;
+  rejetees: number;
+  tauxValidation: number;
+  filieres: Record<string, number>;
+  activite: ActiviteItem[];
+}
+
+export interface ConseillerAdmin {
+  id: number;
+  userId: number;
+  etablissement: string;
+  specialite: string;
+  nombreEtudiants: number;
+}
+
+export interface LyceenAdmin {
+  id: number;
+  userId: number;
+  matricule: string;
+  etablissement: string;
+  niveau: string;
+  serieCode: string;
+  conseillerId: number | null;
+}
+
+export const getStatistiques = () =>
+  request<StatistiquesResponse>("/api/orientations/admin/statistiques");
+
+export const getTousConseillers = () =>
+  request<ConseillerAdmin[]>("/api/conseillers/admin/tous");
+
+export const getTousLyceens = () =>
+  request<LyceenAdmin[]>("/api/students/admin/tous");
