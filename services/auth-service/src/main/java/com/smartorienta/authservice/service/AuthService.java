@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -150,5 +151,15 @@ public class AuthService {
 
         return saved;
     }
+
+    /** Identités des utilisateurs, destinées aux interfaces d'administration. */
+    public List<UserInfoResponse> tousLesUtilisateurs() {
+        return userRepository.findAll().stream()
+                .map(u -> new UserInfoResponse(
+                        u.getId(), u.getEmail(), u.getNom(),
+                        u.getPrenom(), u.getRole().name()))
+                .toList();
+    }
+
 
 }
