@@ -80,4 +80,11 @@ public class ConseillerProfileController {
         reponse.put("specialite", p.getSpecialite());
         return reponse;
     }
+
+    /** Tous les conseillers avec leur charge — réservé à l'administration. */
+    @GetMapping("/admin/tous")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> tousLesConseillers() {
+        return ResponseEntity.ok(conseillerProfileService.tousLesConseillers());
+    }
 }

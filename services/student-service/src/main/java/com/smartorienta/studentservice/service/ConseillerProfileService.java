@@ -7,6 +7,8 @@ import com.smartorienta.studentservice.exception.BusinessException;
 import com.smartorienta.studentservice.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.util.List;
 
@@ -116,5 +118,20 @@ public class ConseillerProfileService {
                 profile.getConseillerId());
 
         return new DossierEtudiant(profilDto, notes, riasec, contexte);
+    }
+
+    /** Liste des conseillers avec le nombre de lycéens qu'ils suivent. */
+    public List<Map<String, Object>> tousLesConseillers() {
+        return conseillerProfileRepository.findAll().stream()
+                .map(c -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", c.getId());
+                    m.put("userId", c.getUserId());
+                    m.put("etablissement", c.getEtablissement());
+                    m.put("specialite", c.getSpecialite());
+                    m.put("nombreEtudiants", studentProfileRepository.countByConseillerId(c.getUserId()));
+                    return m;
+                })
+                .toList();
     }
 }

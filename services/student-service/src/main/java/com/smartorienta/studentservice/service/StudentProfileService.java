@@ -10,6 +10,9 @@ import com.smartorienta.studentservice.repository.SerieRepository;
 import com.smartorienta.studentservice.repository.StudentProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -98,5 +101,22 @@ public class StudentProfileService {
         if (request.getSexe() != null)           profile.setSexe(request.getSexe());
 
         return toResponse(studentProfileRepository.save(profile));
+    }
+
+    /** Liste de tous les profils scolaires — réservée à l'administration. */
+    public List<Map<String, Object>> tousLesProfils() {
+        return studentProfileRepository.findAll().stream()
+                .map(p -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", p.getId());
+                    m.put("userId", p.getUserId());
+                    m.put("matricule", p.getMatricule());
+                    m.put("etablissement", p.getEtablissement());
+                    m.put("niveau", p.getNiveau());
+                    m.put("serieCode", p.getSerie() != null ? p.getSerie().getCode() : null);
+                    m.put("conseillerId", p.getConseillerId());
+                    return m;
+                })
+                .toList();
     }
 }

@@ -8,7 +8,10 @@ import com.smartorienta.studentservice.service.StudentProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/students")
@@ -42,5 +45,11 @@ public class StudentProfileController {
 
         Long userId = jwtService.extractUserId(authHeader.substring(7));
         return ResponseEntity.ok(studentProfileService.updateProfile(userId, request));
+    }
+
+    @GetMapping("/admin/tous")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> tousLesProfils() {
+        return ResponseEntity.ok(studentProfileService.tousLesProfils());
     }
 }

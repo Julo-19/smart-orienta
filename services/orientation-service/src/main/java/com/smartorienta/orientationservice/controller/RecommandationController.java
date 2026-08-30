@@ -2,6 +2,7 @@ package com.smartorienta.orientationservice.controller;
 
 import com.smartorienta.orientationservice.dto.ModificationRequest;
 import com.smartorienta.orientationservice.dto.RejetRequest;
+import com.smartorienta.orientationservice.dto.StatistiquesResponse;
 import com.smartorienta.orientationservice.dto.ValidationRequest;
 import com.smartorienta.orientationservice.entity.Orientation;
 import com.smartorienta.orientationservice.entity.Recommandation;
@@ -98,5 +99,14 @@ public class RecommandationController {
     @PreAuthorize("hasAnyRole('CONSEILLER','ADMIN')")
     public ResponseEntity<List<Orientation>> filieres() {
         return ResponseEntity.ok(orientationRepository.findAllByOrderByCategorieAscLibelleAsc());
+    }
+
+    // ─────────── Côté administration ───────────
+
+    /** Statistiques d'ensemble pour le tableau de bord d'administration. */
+    @GetMapping("/admin/statistiques")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StatistiquesResponse> statistiques() {
+        return ResponseEntity.ok(recommandationService.statistiques());
     }
 }

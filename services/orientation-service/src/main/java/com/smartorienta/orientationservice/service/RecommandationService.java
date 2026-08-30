@@ -1,19 +1,24 @@
 package com.smartorienta.orientationservice.service;
 
 import com.smartorienta.orientationservice.client.StudentClient;
+import com.smartorienta.orientationservice.dto.ActiviteItem;
 import com.smartorienta.orientationservice.dto.DossierMLResponse;
 import com.smartorienta.orientationservice.dto.PredictionResponse;
-import com.smartorienta.orientationservice.entity.Orientation;
+import com.smartorienta.orientationservice.dto.StatistiquesResponse;
 import com.smartorienta.orientationservice.entity.Recommandation;
 import com.smartorienta.orientationservice.entity.StatutRecommandation;
 import com.smartorienta.orientationservice.exception.BusinessException;
-import com.smartorienta.orientationservice.repository.OrientationRepository;
 import com.smartorienta.orientationservice.repository.RecommandationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +27,6 @@ public class RecommandationService {
     private final RecommandationRepository recommandationRepository;
     private final PredictionService predictionService;
     private final StudentClient studentClient;
-    private final OrientationRepository orientationRepository;
 
     /**
      * Génère une recommandation pour un lycéen : récupère son dossier auprès
@@ -31,16 +35,15 @@ public class RecommandationService {
      */
     public Recommandation genererPour(Long etudiantUserId) {
 
-        // Récupération du dossier auprès du Student Service
+        // 1. Récupération du dossier auprès du Student Service
         DossierMLResponse dossier;
         try {
             dossier = studentClient.getDossier(etudiantUserId);
         } catch (Exception e) {
-//            e.printStackTrace();
             throw new BusinessException("Impossible de récupérer le dossier de l'étudiant");
         }
 
-        // Le dossier doit être exploitable
+        // 2. Le dossier doit être exploitable
         if (dossier == null || !dossier.isComplet()) {
             String detail = (dossier != null && dossier.getMessageIncompletude() != null)
                     ? dossier.getMessageIncompletude()
@@ -48,10 +51,10 @@ public class RecommandationService {
             throw new BusinessException("Votre dossier est incomplet. " + detail);
         }
 
-        // Prédiction
+        // 3. Prédiction
         PredictionResponse prediction = predictionService.predire(dossier);
 
-        // Enregistrement, en attente de validation
+        // 4. Enregistrement, en attente de validation
         Recommandation reco = new Recommandation();
         reco.setEtudiantUserId(etudiantUserId);
         reco.setCategorie(prediction.getCategorie());
@@ -69,14 +72,14 @@ public class RecommandationService {
         return recommandationRepository.findByEtudiantUserIdOrderByDateGenerationDesc(etudiantUserId);
     }
 
-    /**
-     * Le conseiller valide la proposition du modèle.
-     */
+    // ─────────── Décisions du conseiller ───────────
+
+    /** Le conseiller valide la proposition du modèle. */
     public Recommandation valider(Long recoId, Long conseillerUserId, String commentaire) {
         Recommandation reco = chargerEnAttente(recoId);
 
         reco.setStatut(StatutRecommandation.VALIDEE);
-        reco.setBrancheFinale(reco.getBranche());     // la branche proposée est retenue
+        reco.setBrancheFinale(reco.getBranche());
         reco.setConseillerUserId(conseillerUserId);
         reco.setCommentaireConseiller(commentaire);
         reco.setDateDecision(LocalDateTime.now());
@@ -84,26 +87,17 @@ public class RecommandationService {
         return recommandationRepository.save(reco);
     }
 
-    /**
-     * Le conseiller retient une autre filière que celle proposée.
-     */
+    /** Le conseiller retient une autre filière que celle proposée. */
     public Recommandation modifier(Long recoId, Long conseillerUserId,
                                    String nouvelleBranche, String commentaire) {
         if (nouvelleBranche == null || nouvelleBranche.isBlank()) {
             throw new BusinessException("La nouvelle filière est obligatoire");
         }
 
-        // La filière retenue doit appartenir au référentiel
-        Orientation filiere = orientationRepository.findByLibelle(nouvelleBranche)
-                .orElseThrow(() -> new BusinessException(
-                        "Filière inconnue : « " + nouvelleBranche + " ». "
-                                + "Consultez la liste des filières disponibles."));
-
         Recommandation reco = chargerEnAttente(recoId);
 
         reco.setStatut(StatutRecommandation.MODIFIEE);
         reco.setBrancheFinale(nouvelleBranche);
-        reco.setCategorie(filiere.getCategorie());
         reco.setConseillerUserId(conseillerUserId);
         reco.setCommentaireConseiller(commentaire);
         reco.setDateDecision(LocalDateTime.now());
@@ -111,9 +105,7 @@ public class RecommandationService {
         return recommandationRepository.save(reco);
     }
 
-    /**
-     * Le conseiller écarte la proposition ; un motif est exigé.
-     */
+    /** Le conseiller écarte la proposition ; un motif est exigé. */
     public Recommandation rejeter(Long recoId, Long conseillerUserId, String motif) {
         if (motif == null || motif.isBlank()) {
             throw new BusinessException("Un motif est obligatoire pour rejeter une recommandation");
@@ -131,8 +123,8 @@ public class RecommandationService {
 
     /**
      * Charge une recommandation et vérifie qu'elle peut encore recevoir une décision.
-     * Une recommandation déjà traitée ne peut être reprise : la transition n'est
-     * autorisée que depuis l'état EN_ATTENTE.
+     * La transition n'est autorisée que depuis l'état EN_ATTENTE : une recommandation
+     * déjà traitée ne peut être reprise.
      */
     private Recommandation chargerEnAttente(Long recoId) {
         Recommandation reco = recommandationRepository.findById(recoId)
@@ -154,5 +146,55 @@ public class RecommandationService {
     /** Ensemble des recommandations en attente de décision. */
     public List<Recommandation> toutesEnAttente() {
         return recommandationRepository.findByStatut(StatutRecommandation.EN_ATTENTE);
+    }
+
+    // ─────────── Administration ───────────
+
+    /** Statistiques d'ensemble, destinées au tableau de bord d'administration. */
+    public StatistiquesResponse statistiques() {
+
+        List<Recommandation> toutes = recommandationRepository.findAll();
+
+        long total     = toutes.size();
+        long attente   = compter(toutes, StatutRecommandation.EN_ATTENTE);
+        long validees  = compter(toutes, StatutRecommandation.VALIDEE);
+        long modifiees = compter(toutes, StatutRecommandation.MODIFIEE);
+        long rejetees  = compter(toutes, StatutRecommandation.REJETEE);
+
+        // Le taux ne porte que sur les dossiers effectivement traités
+        long traitees = validees + modifiees + rejetees;
+        int taux = traitees == 0 ? 0 : (int) Math.round((validees + modifiees) * 100.0 / traitees);
+
+        // Répartition par filière, des plus fréquentes aux plus rares
+        Map<String, Long> filieres = toutes.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.getBrancheFinale() != null ? r.getBrancheFinale() : r.getBranche(),
+                        Collectors.counting()))
+                .entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(7)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, Map.Entry::getValue,
+                        (a, b) -> a, LinkedHashMap::new));
+
+        // Dernières recommandations, pour le fil d'activité
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        List<ActiviteItem> activite = toutes.stream()
+                .sorted(Comparator.comparing(Recommandation::getDateGeneration).reversed())
+                .limit(6)
+                .map(r -> new ActiviteItem(
+                        r.getId(),
+                        r.getEtudiantUserId(),
+                        r.getBrancheFinale() != null ? r.getBrancheFinale() : r.getBranche(),
+                        r.getStatut().name(),
+                        r.getDateGeneration().format(format)))
+                .toList();
+
+        return new StatistiquesResponse(total, attente, validees, modifiees, rejetees,
+                taux, filieres, activite);
+    }
+
+    private long compter(List<Recommandation> liste, StatutRecommandation statut) {
+        return liste.stream().filter(r -> r.getStatut() == statut).count();
     }
 }
