@@ -7,22 +7,17 @@ import {
 } from "recharts";
 import {
   GraduationCap, Brain, Check, Clock,
-  UserPlus, Eye, Settings, Server,
-  RefreshCw, ChevronRight
+  UserPlus, Eye, Settings, X as XIcon, CheckCircle
 } from "lucide-react";
+import { creerConseiller } from "@/lib/api";
 
 // ── TYPES ──
 type Onglet = "overview" | "lyceens" | "conseillers" | "systeme";
 type Statut = "EN_ATTENTE" | "VALIDEE" | "AJUSTEE" | "REJETEE";
 
-// ── MOCK DATA ──
-const STATS = {
-  lyceens: 156, lyceensWeek: 12,
-  recos: 89, recosAttente: 12,
-  tauxValidation: 75, f1Score: 84,
-  delaiMoyen: 18,
-};
-
+// ── DONNÉES DE DÉMONSTRATION ──
+// Ces valeurs sont fournies à titre illustratif tant que les interfaces
+// de statistiques ne sont pas disponibles côté serveur.
 const STATUTS_DATA = [
   { label: "Validées",   value: 67, color: "#10B981" },
   { label: "Ajustées",   value: 15, color: "#F59E0B" },
@@ -44,8 +39,8 @@ const ACTIVITE = [
   { dot: "#3B82F6", texte: "Nouvelle recommandation — Rokhaya Mbaye (S3)", temps: "Il y a 8 min"    },
   { dot: "#10B981", texte: "M. Ndiaye a validé le dossier de Moussa Sarr",  temps: "Il y a 42 min"  },
   { dot: "#F59E0B", texte: "Mme Sarr a ajusté → Communication pour Fatou",  temps: "Il y a 1h 14min"},
-  { dot: "#EF4444", texte: "M. Ba a rejeté le dossier d'Ibrahim Faye",       temps: "Il y a 2h 05min"},
-  { dot: "#3B82F6", texte: "Nouveau lycéen inscrit : Cheikh Cissé (L2)",     temps: "Il y a 3h 20min"},
+  { dot: "#EF4444", texte: "M. Ba a rejeté le dossier d'Ibrahim Faye",      temps: "Il y a 2h 05min"},
+  { dot: "#3B82F6", texte: "Nouveau lycéen inscrit : Cheikh Cissé (L2)",    temps: "Il y a 3h 20min"},
 ];
 
 const CONSEILLERS_CHARGE = [
@@ -57,13 +52,11 @@ const CONSEILLERS_CHARGE = [
 ];
 
 const LYCEENS = [
-  { nom: "Aminata Diallo",  serie: "S2", serie_color: "bg-blue-100 text-blue-700",   etablissement: "Lycée Seydina L.",   conseiller: "M. Ndiaye", statut: "EN_ATTENTE", date: "27 Avr" },
-  { nom: "Moussa Sarr",     serie: "S1", serie_color: "bg-blue-100 text-blue-700",   etablissement: "Lycée Blaise Diagne",conseiller: "M. Ndiaye", statut: "VALIDEE",    date: "25 Avr" },
-  { nom: "Fatou Ndiaye",    serie: "L1", serie_color: "bg-purple-100 text-purple-700",etablissement: "Lycée J.F. Kennedy", conseiller: "Mme Sarr",  statut: "AJUSTEE",    date: "24 Avr" },
-  { nom: "Ibrahim Faye",    serie: "G1", serie_color: "bg-green-100 text-green-700",  etablissement: "Lycée Tech. Limamou",conseiller: "M. Ba",     statut: "REJETEE",    date: "23 Avr" },
-  { nom: "Rokhaya Mbaye",   serie: "S3", serie_color: "bg-blue-100 text-blue-700",   etablissement: "Lycée Mariama Bâ",   conseiller: "M. Ndiaye", statut: "EN_ATTENTE", date: "27 Avr" },
-  { nom: "Cheikh Tall",     serie: "S2", serie_color: "bg-blue-100 text-blue-700",   etablissement: "Lycée Blaise Diagne",conseiller: "Mme Diop",  statut: "VALIDEE",    date: "22 Avr" },
-  { nom: "Julo Barro",      serie: "G2", serie_color: "bg-green-100 text-green-700",  etablissement: "Lycée Seydina L.",   conseiller: "M. Ba",     statut: "VALIDEE",    date: "21 Avr" },
+  { nom: "Aminata Diallo",  serie: "S2", serie_color: "bg-blue-100 text-blue-700",    etablissement: "Lycée Seydina L.",    conseiller: "M. Ndiaye", statut: "EN_ATTENTE", date: "27 Avr" },
+  { nom: "Moussa Sarr",     serie: "S1", serie_color: "bg-blue-100 text-blue-700",    etablissement: "Lycée Blaise Diagne", conseiller: "M. Ndiaye", statut: "VALIDEE",    date: "25 Avr" },
+  { nom: "Fatou Ndiaye",    serie: "L1", serie_color: "bg-purple-100 text-purple-700",etablissement: "Lycée J.F. Kennedy",  conseiller: "Mme Sarr",  statut: "AJUSTEE",    date: "24 Avr" },
+  { nom: "Ibrahim Faye",    serie: "G",  serie_color: "bg-green-100 text-green-700",  etablissement: "Lycée Tech. Limamou", conseiller: "M. Ba",     statut: "REJETEE",    date: "23 Avr" },
+  { nom: "Rokhaya Mbaye",   serie: "S3", serie_color: "bg-blue-100 text-blue-700",    etablissement: "Lycée Mariama Bâ",    conseiller: "M. Ndiaye", statut: "EN_ATTENTE", date: "27 Avr" },
 ];
 
 const MICROSERVICES = [
@@ -78,22 +71,21 @@ const MICROSERVICES = [
 ];
 
 const MODELES_ML = [
-  { nom: "Random Forest",       accuracy: 84, f1: 82, badge: "PROD",     badgeColor: "bg-green-100 text-green-700"  },
-  { nom: "XGBoost",             accuracy: 87, f1: 85, badge: "TEST",     badgeColor: "bg-blue-100 text-blue-700"   },
-  { nom: "Régression Logistique", accuracy: 71, f1: 69, badge: "BASELINE", badgeColor: "bg-gray-100 text-gray-600"  },
-  { nom: "KNN (k=5)",           accuracy: 76, f1: 73, badge: "COMPARE",  badgeColor: "bg-gray-100 text-gray-500"  },
+  { nom: "Random Forest",         accuracy: 84, f1: 82, badge: "PROD",     badgeColor: "bg-green-100 text-green-700" },
+  { nom: "XGBoost",               accuracy: 87, f1: 85, badge: "TEST",     badgeColor: "bg-blue-100 text-blue-700"   },
+  { nom: "Régression Logistique", accuracy: 71, f1: 69, badge: "BASELINE", badgeColor: "bg-gray-100 text-gray-600"   },
+  { nom: "KNN (k=5)",             accuracy: 76, f1: 73, badge: "COMPARE",  badgeColor: "bg-gray-100 text-gray-500"   },
 ];
 
 const PARAMS_SYSTEME = [
-  { label: "Délai max conseiller",    value: "48 heures",                     highlight: false },
-  { label: "Règle d'assignation",     value: "Établissement → Série → Charge",highlight: false },
-  { label: "Charge max par conseiller",value: "30 dossiers",                  highlight: false },
-  { label: "JWT Access Token",        value: "15 minutes",                    highlight: false },
-  { label: "JWT Refresh Token",       value: "7 jours",                       highlight: false },
-  { label: "Dataset seed ML",         value: "random_state=42",               highlight: true  },
+  { label: "Délai max conseiller",     value: "48 heures",                      highlight: false },
+  { label: "Règle d'assignation",      value: "Établissement → Série → Charge", highlight: false },
+  { label: "Charge max par conseiller",value: "30 dossiers",                    highlight: false },
+  { label: "JWT Access Token",         value: "15 minutes",                     highlight: false },
+  { label: "JWT Refresh Token",        value: "7 jours",                        highlight: false },
+  { label: "Dataset seed ML",          value: "random_state=42",                highlight: true  },
 ];
 
-// ── HELPERS ──
 const STATUT_CONFIG: Record<Statut, { label: string; color: string; dot: string }> = {
   EN_ATTENTE: { label: "En attente", color: "text-amber-600",  dot: "bg-amber-500"  },
   VALIDEE:    { label: "Validée",    color: "text-green-600",  dot: "bg-green-500"  },
@@ -102,15 +94,48 @@ const STATUT_CONFIG: Record<Statut, { label: string; color: string; dot: string 
 };
 
 const ONGLETS = [
-  { id: "overview",     label: "Vue d'ensemble", icon: <BarChart className="w-4 h-4" /> },
-  { id: "lyceens",      label: "Lycéens",        icon: <GraduationCap className="w-4 h-4" /> },
-  { id: "conseillers",  label: "Conseillers",    icon: <UserPlus className="w-4 h-4" /> },
-  { id: "systeme",      label: "Système",        icon: <Settings className="w-4 h-4" /> },
+  { id: "overview",    label: "Vue d'ensemble", icon: <BarChart className="w-4 h-4" /> },
+  { id: "lyceens",     label: "Lycéens",        icon: <GraduationCap className="w-4 h-4" /> },
+  { id: "conseillers", label: "Conseillers",    icon: <UserPlus className="w-4 h-4" /> },
+  { id: "systeme",     label: "Système",        icon: <Settings className="w-4 h-4" /> },
 ];
 
 // ── PAGE PRINCIPALE ──
 export default function AdminDashboard() {
   const [onglet, setOnglet] = useState<Onglet>("overview");
+
+  // Création d'un compte conseiller
+  const [formOuvert, setFormOuvert] = useState(false);
+  const [form, setForm] = useState({ email: "", nom: "", prenom: "" });
+  const [enCours, setEnCours] = useState(false);
+  const [succes, setSucces] = useState("");
+  const [erreur, setErreur] = useState("");
+
+  const handleCreerConseiller = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErreur("");
+    setSucces("");
+
+    if (!form.email || !form.nom || !form.prenom) {
+      setErreur("Tous les champs sont obligatoires.");
+      return;
+    }
+
+    setEnCours(true);
+    try {
+      await creerConseiller(form);
+      setSucces(
+        `Le compte de ${form.prenom} ${form.nom} a été créé. ` +
+        `Un courriel lui a été envoyé pour définir son mot de passe.`
+      );
+      setForm({ email: "", nom: "", prenom: "" });
+      setFormOuvert(false);
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Création impossible");
+    } finally {
+      setEnCours(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6">
@@ -140,13 +165,12 @@ export default function AdminDashboard() {
       {onglet === "overview" && (
         <div className="space-y-6">
 
-          {/* KPI Cards */}
           <div className="grid grid-cols-4 gap-4">
             {[
-              { label: "LYCÉENS INSCRITS",   value: "156",  sub: "+12 cette semaine",  icon: <GraduationCap className="w-6 h-6 text-gray-400" />, color: "text-blue-600"   },
-              { label: "RECO. GÉNÉRÉES",     value: "89",   sub: "12 en attente",       icon: <Brain className="w-6 h-6 text-gray-400" />,        color: "text-purple-600" },
-              { label: "TAUX DE VALIDATION", value: "75%",  sub: "F1-score ML: 84%",    icon: <Check className="w-6 h-6 text-gray-400" />,        color: "text-green-600"  },
-              { label: "DÉLAI MOYEN",        value: "18h",  sub: "Max autorisé : 48h",  icon: <Clock className="w-6 h-6 text-gray-400" />,        color: "text-amber-500"  },
+              { label: "LYCÉENS INSCRITS",   value: "156", sub: "+12 cette semaine", icon: <GraduationCap className="w-6 h-6 text-gray-400" />, color: "text-blue-600"   },
+              { label: "RECO. GÉNÉRÉES",     value: "89",  sub: "12 en attente",     icon: <Brain className="w-6 h-6 text-gray-400" />,         color: "text-purple-600" },
+              { label: "TAUX DE VALIDATION", value: "75%", sub: "F1-score ML: 84%",  icon: <Check className="w-6 h-6 text-gray-400" />,         color: "text-green-600"  },
+              { label: "DÉLAI MOYEN",        value: "18h", sub: "Max autorisé : 48h",icon: <Clock className="w-6 h-6 text-gray-400" />,         color: "text-amber-500"  },
             ].map((kpi) => (
               <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                 <div className="flex justify-between items-start mb-3">
@@ -161,10 +185,8 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* Grille stats */}
           <div className="grid grid-cols-3 gap-4">
 
-            {/* Statuts recommandations */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
                 Statuts des recommandations
@@ -172,14 +194,8 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-6">
                 <div className="relative">
                   <PieChart width={120} height={120}>
-                    <Pie
-                      data={STATUTS_DATA}
-                      cx={55} cy={55}
-                      innerRadius={35}
-                      outerRadius={55}
-                      dataKey="value"
-                      paddingAngle={2}
-                    >
+                    <Pie data={STATUTS_DATA} cx={55} cy={55} innerRadius={35}
+                      outerRadius={55} dataKey="value" paddingAngle={2}>
                       {STATUTS_DATA.map((entry, i) => (
                         <Cell key={i} fill={entry.color} />
                       ))}
@@ -201,7 +217,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Filières recommandées */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
                 Filières recommandées
@@ -219,7 +234,6 @@ export default function AdminDashboard() {
               </ResponsiveContainer>
             </div>
 
-            {/* Activité récente */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
                 Activité récente
@@ -238,7 +252,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Charge conseillers */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-5">
               Charge des conseillers
@@ -266,10 +279,8 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1">
-                    <div
-                      className="h-1.5 rounded-full transition-all"
-                      style={{ width: `${c.valides}%`, background: c.color }}
-                    />
+                    <div className="h-1.5 rounded-full transition-all"
+                      style={{ width: `${c.valides}%`, background: c.color }} />
                   </div>
                   <p className="text-xs text-gray-400">{c.valides}% validés</p>
                 </div>
@@ -287,17 +298,11 @@ export default function AdminDashboard() {
             <div>
               <h2 className="text-xl font-bold text-gray-800">Gestion des lycéens</h2>
               <p className="text-sm text-gray-400 mt-0.5">
-                156 lycéens inscrits · 12 recommandations en attente
+                Liste des lycéens inscrits et de leur suivi
               </p>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white
-              rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all">
-              <UserPlus className="w-4 h-4" />
-              + Ajouter un lycéen
-            </button>
           </div>
 
-          {/* Tableau */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <table className="w-full">
               <thead>
@@ -351,14 +356,95 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-xl font-bold text-gray-800">Gestion des conseillers</h2>
-              <p className="text-sm text-gray-400 mt-0.5">12 conseillers actifs sur la plateforme</p>
+              <p className="text-sm text-gray-400 mt-0.5">
+                Création et suivi des comptes conseillers
+              </p>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white
-              rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all">
+            <button
+              onClick={() => { setFormOuvert(!formOuvert); setSucces(""); setErreur(""); }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white
+                rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all"
+            >
               <UserPlus className="w-4 h-4" />
-              + Ajouter
+              {formOuvert ? "Annuler" : "Ajouter un conseiller"}
             </button>
           </div>
+
+          {succes && (
+            <div className="mb-5 flex items-start gap-3 p-4 rounded-xl border border-green-200 bg-green-50">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-700">{succes}</p>
+            </div>
+          )}
+
+          {erreur && (
+            <div className="mb-5 flex items-start gap-3 p-4 rounded-xl border border-red-200 bg-red-50">
+              <XIcon className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{erreur}</p>
+            </div>
+          )}
+
+          {formOuvert && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-6">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">
+                Nouveau conseiller
+              </h3>
+              <p className="text-xs text-gray-400 mb-5">
+                Le conseiller recevra un courriel l'invitant à définir son mot de passe.
+              </p>
+
+              <form onSubmit={handleCreerConseiller}>
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Prénom</label>
+                    <input
+                      type="text"
+                      value={form.prenom}
+                      onChange={(e) => setForm({ ...form, prenom: e.target.value })}
+                      placeholder="Awa"
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm
+                        focus:outline-none focus:border-blue-500 transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom</label>
+                    <input
+                      type="text"
+                      value={form.nom}
+                      onChange={(e) => setForm({ ...form, nom: e.target.value })}
+                      placeholder="Diallo"
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm
+                        focus:outline-none focus:border-blue-500 transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Adresse électronique
+                    </label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      placeholder="conseiller@smartorienta.sn"
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm
+                        focus:outline-none focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={enCours}
+                  className={`px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-all
+                    ${enCours ? "bg-blue-400 cursor-wait" : "bg-blue-600 hover:bg-blue-700"}`}
+                >
+                  {enCours ? "Création en cours…" : "Créer le compte"}
+                </button>
+              </form>
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-4">
             {CONSEILLERS_CHARGE.map((c) => {
@@ -368,7 +454,8 @@ export default function AdminDashboard() {
                 <div key={c.nom} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
                     <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-lg flex-shrink-0"
+                      className="w-12 h-12 rounded-full flex items-center justify-center
+                        font-bold text-white text-lg flex-shrink-0"
                       style={{ background: c.color }}
                     >
                       {c.initiale}
@@ -402,10 +489,8 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all"
-                        style={{ width: `${chargePercent}%`, background: chargeColor }}
-                      />
+                      <div className="h-2 rounded-full transition-all"
+                        style={{ width: `${chargePercent}%`, background: chargeColor }} />
                     </div>
                   </div>
 
@@ -436,7 +521,6 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          {/* Microservices */}
           <div className="grid grid-cols-4 gap-3">
             {MICROSERVICES.map((s) => (
               <div key={s.nom} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
@@ -453,13 +537,11 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* Métriques ML + Paramètres */}
           <div className="grid grid-cols-2 gap-4">
 
-            {/* Métriques ML */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
-                Métriques ML — Comparaison des 4 modèles
+                Métriques ML — Comparaison des modèles
               </h3>
               <div className="space-y-4">
                 {MODELES_ML.map((m) => (
@@ -480,7 +562,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Paramètres système */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
                 Paramètres système

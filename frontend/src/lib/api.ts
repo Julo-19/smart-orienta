@@ -278,3 +278,19 @@ export const rejeterRecommandation = (id: number, motif: string) =>
     method: "POST",
     body: JSON.stringify({ motif }),
   });
+
+
+
+  // ─────────── Administration ───────────
+
+export interface CreateConseillerRequest {
+  email: string;
+  nom: string;
+  prenom: string;
+}
+
+export const creerConseiller = (data: CreateConseillerRequest) =>
+  request<unknown>("/api/auth/admin/conseillers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });

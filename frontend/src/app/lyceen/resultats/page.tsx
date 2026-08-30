@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Clock, CheckCircle, XCircle, ArrowLeft, Lightbulb } from "lucide-react";
+import { FileText, Clock, CheckCircle, XCircle, ArrowLeft, Lightbulb, History } from "lucide-react";
 import StepIndicator from "@/components/lyceen/StepIndicator";
 import RiasecRadar from "@/components/lyceen/RiasecRadar";
 import Button from "@/components/ui/button";
@@ -18,13 +18,13 @@ export default function ResultatsPage() {
   const pageRef = useRef<HTMLDivElement>(null);
 
   const [reco, setReco] = useState<Recommandation | null>(null);
+  const [historique, setHistorique] = useState<Recommandation[]>([]);
   const [riasec, setRiasec] = useState<ProfilRiasecData | null>(null);
   const [serie, setSerie] = useState("—");
   const [moyenne, setMoyenne] = useState<number | null>(null);
   const [matieresRenseignees, setMatieresRenseignees] = useState<number | null>(null);
   const [chargement, setChargement] = useState(true);
   const [error, setError] = useState("");
-  
 
   useEffect(() => {
     if (!getToken()) {
@@ -46,8 +46,8 @@ export default function ResultatsPage() {
           // Aucun bulletin pour ce semestre
         }
 
-        // Une recommandation existante est réutilisée ; sinon on en demande une
         const existantes = await getMesRecommandations();
+        setHistorique(existantes);
         setReco(existantes.length > 0 ? existantes[0] : await demanderRecommandation());
       } catch (err) {
         setError(err instanceof Error ? err.message : "Chargement impossible");
@@ -68,7 +68,19 @@ export default function ResultatsPage() {
   const statut = reco?.statut ?? "EN_ATTENTE";
   const scorePourcent = reco ? Math.round(reco.scoreConfiance * 100) : 0;
 
-  // Apparence du bandeau selon l'état de la décision
+  // Libellés et styles par état
+  const LIBELLE: Record<string, string> = {
+    EN_ATTENTE: "En attente", VALIDEE: "Validée",
+    MODIFIEE: "Modifiée", REJETEE: "Rejetée",
+  };
+
+  const PASTILLE: Record<string, string> = {
+    EN_ATTENTE: "bg-amber-50 text-amber-700 border-amber-200",
+    VALIDEE:    "bg-green-50 text-green-700 border-green-200",
+    MODIFIEE:   "bg-blue-50 text-blue-700 border-blue-200",
+    REJETEE:    "bg-red-50 text-red-700 border-red-200",
+  };
+
   const bandeau = {
     EN_ATTENTE: {
       fond: "bg-amber-50 border-amber-200", texte: "text-amber-700", sousTexte: "text-amber-600",
@@ -137,10 +149,10 @@ export default function ResultatsPage() {
       <div>
         <StepIndicator currentStep={5} />
         <div className="max-w-5xl mx-auto px-6 py-12">
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3 mb-4">
             {error}
           </div>
-          <Button variant="ghost" onClick={() => router.back()} >
+          <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4" />
             Retour
           </Button>
@@ -230,7 +242,6 @@ export default function ResultatsPage() {
               </div>
             </div>
 
-            {/* Filière retenue si le conseiller a modifié */}
             {statut === "MODIFIEE" && reco?.brancheFinale && (
               <div className="mt-3 flex items-center gap-4 p-4 rounded-xl border border-green-200 bg-green-50">
                 <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -323,6 +334,53 @@ export default function ResultatsPage() {
           </div>
 
         </div>
+
+        {/* ── HISTORIQUE ── */}
+        {historique.length > 1 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mt-5">
+            <div className="flex items-center gap-2 mb-1">
+              <History className="w-4 h-4 text-gray-400" />
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Recommandations précédentes
+              </h3>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Historique de vos demandes d'orientation
+            </p>
+
+            <div className="space-y-2">
+              {historique.slice(1).map((r) => {
+                const conf = Math.round(r.scoreConfiance * 100);
+                const date = new Date(r.dateGeneration).toLocaleDateString("fr-FR", {
+                  day: "numeric", month: "long", year: "numeric",
+                });
+
+                return (
+                  <div
+                    key={r.id}
+                    className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 bg-gray-50"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-800">
+                        {r.brancheFinale ?? r.branche}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {r.categorie} · {date}
+                      </p>
+                    </div>
+
+                    <span className="text-sm font-bold text-gray-500">{conf}%</span>
+
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border
+                      ${PASTILLE[r.statut]}`}>
+                      {LIBELLE[r.statut]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
