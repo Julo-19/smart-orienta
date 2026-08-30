@@ -343,3 +343,14 @@ export const getTousConseillers = () =>
 
 export const getTousLyceens = () =>
   request<LyceenAdmin[]>("/api/students/admin/tous");
+
+export interface UserInfo {
+  id: number;
+  email: string;
+  nom: string;
+  prenom: string;
+  role: "LYCEEN" | "CONSEILLER" | "ADMIN";
+}
+
+export const getTousUtilisateurs = () =>
+  request<UserInfo[]>("/api/auth/admin/users");

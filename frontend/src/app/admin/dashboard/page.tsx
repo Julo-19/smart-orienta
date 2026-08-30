@@ -10,8 +10,8 @@ import {
   X as XIcon, CheckCircle, AlertCircle, BarChart3
 } from "lucide-react";
 import {
-  creerConseiller, getStatistiques, getTousConseillers, getTousLyceens,
-  StatistiquesResponse, ConseillerAdmin, LyceenAdmin,
+  creerConseiller, getStatistiques, getTousConseillers, getTousLyceens, getTousUtilisateurs,
+  StatistiquesResponse, ConseillerAdmin, LyceenAdmin, UserInfo,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -27,18 +27,18 @@ const STATUT_STYLE: Record<string, { label: string; color: string; dot: string }
 };
 
 const SERIE_COULEUR: Record<string, string> = {
-  S1: "bg-blue-100 text-blue-700",   S2: "bg-blue-100 text-blue-700",
-  S3: "bg-blue-100 text-blue-700",   L1: "bg-purple-100 text-purple-700",
-  L2: "bg-purple-100 text-purple-700", G: "bg-green-100 text-green-700",
+  S1: "bg-blue-100 text-blue-700",     S2: "bg-blue-100 text-blue-700",
+  S3: "bg-blue-100 text-blue-700",     L1: "bg-purple-100 text-purple-700",
+  L2: "bg-purple-100 text-purple-700", G:  "bg-green-100 text-green-700",
 };
 
 // L'onglet Système reste illustratif : la supervision des services
 // et les métriques des modèles ne sont pas encore exposées par l'API.
 const MICROSERVICES = [
-  { nom: "API Gateway", port: ":8080" }, { nom: "Auth Service", port: ":8081" },
-  { nom: "Student Service", port: ":8082" }, { nom: "Orientation Service", port: ":8083" },
-  { nom: "ML Service", port: ":8084" }, { nom: "Notification Service", port: ":8085" },
-  { nom: "Eureka Server", port: ":8761" }, { nom: "Config Server", port: ":8888" },
+  { nom: "API Gateway", port: ":8080" },          { nom: "Auth Service", port: ":8081" },
+  { nom: "Student Service", port: ":8082" },      { nom: "Orientation Service", port: ":8083" },
+  { nom: "ML Service", port: ":8084" },           { nom: "Notification Service", port: ":8085" },
+  { nom: "Eureka Server", port: ":8761" },        { nom: "Config Server", port: ":8888" },
 ];
 
 const PARAMS_SYSTEME = [
@@ -64,6 +64,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<StatistiquesResponse | null>(null);
   const [conseillers, setConseillers] = useState<ConseillerAdmin[]>([]);
   const [lyceens, setLyceens] = useState<LyceenAdmin[]>([]);
+  const [utilisateurs, setUtilisateurs] = useState<UserInfo[]>([]);
   const [chargement, setChargement] = useState(true);
   const [erreurChargement, setErreurChargement] = useState("");
 
@@ -76,10 +77,10 @@ export default function AdminDashboard() {
 
   const charger = async () => {
     try {
-      const [s, c, l] = await Promise.all([
-        getStatistiques(), getTousConseillers(), getTousLyceens(),
+      const [s, c, l, u] = await Promise.all([
+        getStatistiques(), getTousConseillers(), getTousLyceens(), getTousUtilisateurs(),
       ]);
-      setStats(s); setConseillers(c); setLyceens(l);
+      setStats(s); setConseillers(c); setLyceens(l); setUtilisateurs(u);
     } catch (err) {
       setErreurChargement(err instanceof Error ? err.message : "Chargement impossible");
     } finally {
@@ -119,6 +120,19 @@ export default function AdminDashboard() {
     }
   };
 
+  /** Nom complet d'un utilisateur, à partir de son identifiant. */
+  const nomDe = (userId: number | null) => {
+    if (userId === null) return null;
+    const u = utilisateurs.find((x) => x.id === userId);
+    return u ? `${u.prenom} ${u.nom}` : `Utilisateur #${userId}`;
+  };
+
+  const initialesDe = (userId: number) => {
+    const u = utilisateurs.find((x) => x.id === userId);
+    if (!u) return "?";
+    return `${u.prenom?.[0] ?? ""}${u.nom?.[0] ?? ""}`.toUpperCase();
+  };
+
   // Données dérivées
   const statutsData = stats ? [
     { label: "Validées",   value: stats.validees,  color: "#10B981" },
@@ -133,12 +147,6 @@ export default function AdminDashboard() {
         value, color: COULEURS[i % COULEURS.length],
       }))
     : [];
-
-  const nomConseiller = (userId: number | null) => {
-    if (userId === null) return "Non assigné";
-    const c = conseillers.find((x) => x.userId === userId);
-    return c ? `${c.specialite} · ${c.etablissement}` : `Conseiller #${userId}`;
-  };
 
   if (chargement) {
     return (
@@ -279,9 +287,11 @@ export default function AdminDashboard() {
                         <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${s?.dot}`} />
                         <div>
                           <p className="text-xs text-gray-700 leading-snug">
-                            {a.branche} — <span className={s?.color}>{s?.label}</span>
+                            {nomDe(a.etudiantUserId) ?? "Élève"} — {a.branche}
                           </p>
-                          <p className="text-xs text-gray-400 mt-0.5">{a.date}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            <span className={s?.color}>{s?.label}</span> · {a.date}
+                          </p>
                         </div>
                       </div>
                     );
@@ -308,10 +318,10 @@ export default function AdminDashboard() {
                       <div className="w-12 h-12 rounded-full flex items-center justify-center
                         font-bold text-white text-lg mx-auto mb-2"
                         style={{ background: couleur }}>
-                        {c.specialite?.[0] ?? "C"}
+                        {initialesDe(c.userId)}
                       </div>
                       <p className="text-xs font-semibold text-gray-700">
-                        Conseiller #{c.userId}
+                        {nomDe(c.userId) ?? `Conseiller #${c.userId}`}
                       </p>
                       <p className="text-xs text-gray-400 mb-2">{c.specialite}</p>
                       <p className="text-lg font-black text-blue-600">{c.nombreEtudiants}</p>
@@ -344,7 +354,7 @@ export default function AdminDashboard() {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800">Lycéens inscrits</h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              {lyceens.length} dossier{lyceens.length > 1 ? "s" : ""} · {" "}
+              {lyceens.length} dossier{lyceens.length > 1 ? "s" : ""} ·{" "}
               {lyceens.filter((l) => l.conseillerId !== null).length} avec conseiller assigné
             </p>
           </div>
@@ -354,7 +364,7 @@ export default function AdminDashboard() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    {["MATRICULE", "SÉRIE", "ÉTABLISSEMENT", "NIVEAU", "CONSEILLER ASSIGNÉ"].map((h) => (
+                    {["LYCÉEN", "MATRICULE", "SÉRIE", "ÉTABLISSEMENT", "NIVEAU", "CONSEILLER ASSIGNÉ"].map((h) => (
                       <th key={h} className="text-left px-5 py-3 text-xs font-bold
                         text-gray-400 uppercase tracking-wider">
                         {h}
@@ -366,7 +376,10 @@ export default function AdminDashboard() {
                   {lyceens.map((l) => (
                     <tr key={l.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-4 text-sm font-semibold text-gray-800">
-                        {l.matricule || `Dossier #${l.id}`}
+                        {nomDe(l.userId) ?? "—"}
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-500">
+                        {l.matricule || "—"}
                       </td>
                       <td className="px-5 py-4">
                         <span className={`px-2 py-0.5 rounded text-xs font-bold
@@ -378,7 +391,7 @@ export default function AdminDashboard() {
                       <td className="px-5 py-4 text-sm text-gray-500">{l.niveau ?? "—"}</td>
                       <td className="px-5 py-4 text-sm">
                         {l.conseillerId !== null ? (
-                          <span className="text-gray-600">{nomConseiller(l.conseillerId)}</span>
+                          <span className="text-gray-600">{nomDe(l.conseillerId)}</span>
                         ) : (
                           <span className="text-amber-600 font-medium">Non assigné</span>
                         )}
@@ -479,6 +492,26 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Comptes créés mais sans profil */}
+          {utilisateurs.filter(
+            (u) => u.role === "CONSEILLER" && !conseillers.some((c) => c.userId === u.id)
+          ).length > 0 && (
+            <div className="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50">
+              <p className="text-xs font-bold text-amber-700 mb-2">
+                Comptes en attente d'activation
+              </p>
+              <div className="space-y-1">
+                {utilisateurs
+                  .filter((u) => u.role === "CONSEILLER" && !conseillers.some((c) => c.userId === u.id))
+                  .map((u) => (
+                    <p key={u.id} className="text-xs text-amber-600">
+                      {u.prenom} {u.nom} — {u.email} · profil non renseigné
+                    </p>
+                  ))}
+              </div>
+            </div>
+          )}
+
           {conseillers.length > 0 ? (
             <div className="grid grid-cols-3 gap-4">
               {conseillers.map((c, i) => {
@@ -490,10 +523,12 @@ export default function AdminDashboard() {
                       <div className="w-12 h-12 rounded-full flex items-center justify-center
                         font-bold text-white text-lg flex-shrink-0"
                         style={{ background: COULEURS[i % COULEURS.length] }}>
-                        {c.specialite?.[0] ?? "C"}
+                        {initialesDe(c.userId)}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-800">Conseiller #{c.userId}</p>
+                        <p className="text-sm font-bold text-gray-800">
+                          {nomDe(c.userId) ?? `Conseiller #${c.userId}`}
+                        </p>
                         <p className="text-xs text-gray-400">{c.specialite}</p>
                       </div>
                     </div>
@@ -526,9 +561,6 @@ export default function AdminDashboard() {
               <AlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-400">
                 Aucun conseiller n'a encore renseigné son profil.
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Les comptes créés apparaissent ici une fois le profil complété.
               </p>
             </div>
           )}
@@ -565,18 +597,41 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
-              Paramètres applicatifs
-            </h3>
-            <div className="space-y-3">
-              {PARAMS_SYSTEME.map((p) => (
-                <div key={p.label}
-                  className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <span className="text-sm text-gray-600">{p.label}</span>
-                  <span className="text-sm font-bold text-gray-800">{p.value}</span>
-                </div>
-              ))}
+          <div className="grid grid-cols-2 gap-4">
+
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
+                Comptes enregistrés
+              </h3>
+              <div className="space-y-3">
+                {["ADMIN", "CONSEILLER", "LYCEEN"].map((role) => {
+                  const nb = utilisateurs.filter((u) => u.role === role).length;
+                  return (
+                    <div key={role}
+                      className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <span className="text-sm text-gray-600 capitalize">
+                        {role.toLowerCase()}s
+                      </span>
+                      <span className="text-sm font-bold text-gray-800">{nb}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
+                Paramètres applicatifs
+              </h3>
+              <div className="space-y-3">
+                {PARAMS_SYSTEME.map((p) => (
+                  <div key={p.label}
+                    className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-sm text-gray-600">{p.label}</span>
+                    <span className="text-sm font-bold text-gray-800">{p.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
