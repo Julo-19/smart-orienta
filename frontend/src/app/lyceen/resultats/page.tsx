@@ -9,7 +9,7 @@ import Button from "@/components/ui/button";
 import { Dimension } from "@/lib/riasecQuestions";
 import {
   demanderRecommandation, getMesRecommandations, getMonRiasec,
-  getBulletin, getMonProfil, Recommandation, ProfilRiasecData,
+  getBulletin, getMonProfil, Recommandation, ProfilRiasecData, FacteurInfluent,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -261,16 +261,46 @@ export default function ResultatsPage() {
         </div>
 
         {/* ── DEUXIÈME GRILLE ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-          {/* Explicabilité */}
+                 {/* Explicabilité */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">
               Explicabilité
             </h3>
             <p className="text-xs text-gray-400 mb-4">
-              Éléments ayant orienté la proposition du modèle
+              Éléments ayant le plus pesé sur cette recommandation
             </p>
+
+            {(() => {
+              let facteurs: FacteurInfluent[] = [];
+              try {
+                facteurs = reco?.facteurs ? JSON.parse(reco.facteurs) : [];
+              } catch {
+                facteurs = [];
+              }
+
+              const COULEURS = ["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"];
+
+              return facteurs.length > 0 ? (
+                <div className="space-y-3 mb-4">
+                  {facteurs.map((f, i) => (
+                    <div key={f.variable}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-gray-600">{f.libelle}</span>
+                        <span className="text-xs font-bold" style={{ color: COULEURS[i % 5] }}>
+                          {f.poids.toFixed(1)} %
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min(f.poids * 4, 100)}%`, background: COULEURS[i % 5] }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null;
+            })()}
 
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
               <p className="text-xs text-blue-800 leading-relaxed">
@@ -279,61 +309,7 @@ export default function ResultatsPage() {
                 {reco?.explication ?? "Aucune explication disponible."}
               </p>
             </div>
-
-            <p className="text-[11px] text-gray-400 mt-4 leading-relaxed">
-              L'analyse détaillée des variables les plus influentes sera fournie
-              par le module d'explicabilité une fois celui-ci intégré.
-            </p>
           </div>
-
-          {/* Synthèse académique */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between">
-            <div>
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-5">
-                Synthèse académique
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: "Série", value: serie, color: "text-blue-600", big: true },
-                  {
-                    label: "Moy. pondérée",
-                    value: moyenne !== null ? moyenne.toFixed(2) : "—",
-                    color: "text-green-600", big: true,
-                  },
-                  {
-                    label: "Matières saisies",
-                    value: matieresRenseignees !== null ? `${matieresRenseignees}` : "—",
-                    color: "text-blue-500", big: false,
-                  },
-                  {
-                    label: "Confiance",
-                    value: `${scorePourcent}%`,
-                    color: "text-amber-500", big: false,
-                  },
-                ].map((item) => (
-                  <div key={item.label} className="text-center p-3 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-400 mb-1">{item.label}</p>
-                    <p className={`font-black ${item.color} ${item.big ? "text-3xl" : "text-2xl"}`}>
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={handleExportPDF}
-              className="mt-6 w-full flex items-center justify-center gap-2 py-3
-                border-2 border-blue-300 text-blue-600 rounded-xl text-sm font-semibold
-                hover:bg-blue-50 transition-all duration-150"
-            >
-              <FileText className="w-4 h-4" />
-              Exporter en PDF
-            </button>
-          </div>
-
-        </div>
 
         {/* ── HISTORIQUE ── */}
         {historique.length > 1 && (

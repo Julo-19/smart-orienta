@@ -59,4 +59,12 @@ public class Recommandation {
     private LocalDateTime dateGeneration = LocalDateTime.now();
 
     private LocalDateTime dateDecision;
+
+        /**
+     * Facteurs explicatifs, conservés au format JSON.
+     * Les stocker évite de solliciter à nouveau le modèle lorsque
+     * le conseiller consulte le dossier plusieurs jours après.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String facteurs;
 }

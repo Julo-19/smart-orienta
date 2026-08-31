@@ -69,6 +69,13 @@ public class RecommandationService {
         reco.setBranche(prediction.getBranche());
         reco.setScoreConfiance(prediction.getScoreConfiance());
         reco.setExplication(prediction.getExplication());
+                // Les facteurs sont sérialisés pour être restitués tels quels
+        try {
+            reco.setFacteurs(new com.fasterxml.jackson.databind.ObjectMapper()
+                    .writeValueAsString(prediction.getFacteurs()));
+        } catch (Exception e) {
+            reco.setFacteurs("[]");
+        }
         reco.setStatut(StatutRecommandation.EN_ATTENTE);
         reco.setDateGeneration(LocalDateTime.now());
 

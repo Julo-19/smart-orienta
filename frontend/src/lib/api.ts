@@ -361,4 +361,26 @@ export const reassignerConseiller = (profileId: number, conseillerUserId: number
     body: JSON.stringify({ conseillerUserId }),
   });
 
+
+export interface FacteurInfluent {
+  variable: string;
+  libelle: string;
+  poids: number;
+}
+
+export interface Recommandation {
+  id: number;
+  etudiantUserId: number;
+  conseillerUserId: number | null;
+  categorie: string;
+  branche: string;
+  scoreConfiance: number;
+  explication: string;
+  facteurs: string | null;        // JSON sérialisé
+  statut: "EN_ATTENTE" | "VALIDEE" | "MODIFIEE" | "REJETEE";
+  brancheFinale: string | null;
+  commentaireConseiller: string | null;
+  dateGeneration: string;
+  dateDecision: string | null;
+}
   
