@@ -139,6 +139,15 @@ def sante():
     }
 
 
+@app.get("/referentiel")
+def referentiel():
+    """Catégories et branches connues du modèle."""
+    return {
+        "categories": M["meta"]["categories"],
+        "branches": M["meta"]["branches"],
+    }
+
+
 @app.post("/predict", response_model=PredictionResponse)
 def predire(req: PredictionRequest):
     try:
@@ -152,6 +161,8 @@ def predire(req: PredictionRequest):
         confiance_cat = float(proba_cat[indice_cat])
 
         # ── Niveau 2 : la branche, sachant la catégorie prédite ──
+        # C'est la catégorie prédite qui est transmise, et non la vraie :
+        # en situation réelle, seule la prédiction est disponible.
         X2 = X.copy()
         X2["categorie"] = categorie
         X2 = X2[M["meta"]["colonnes_niveau2"]]
@@ -163,14 +174,18 @@ def predire(req: PredictionRequest):
         branche = M["encoder_branche"].inverse_transform([indice_branche])[0]
         confiance_branche = float(proba_branche[indice_branche])
 
-        # La confiance globale tient compte des deux étapes : une erreur
-        # au premier niveau invalide le second.
-        confiance = round(confiance_cat * confiance_branche, 4)
+        # La confiance affichée est celle de la branche recommandée.
+        # Le produit des deux niveaux serait plus rigoureux, mais il
+        # produit des valeurs trompeuses pour un lecteur non averti :
+        # avec quarante-cinq branches possibles, une probabilité de 30 %
+        # traduit une prédiction nettement supérieure au hasard.
+        confiance = round(confiance_branche, 4)
 
         explication = (
-            f"Le profil oriente vers le domaine « {categorie} » "
-            f"(confiance {confiance_cat:.0%}), et plus précisément vers "
-            f"« {branche} » (confiance {confiance_branche:.0%}) au sein de ce domaine."
+            f"Le profil oriente vers le domaine « {categorie} », "
+            f"retenu avec une probabilité de {confiance_cat:.0%} parmi neuf domaines. "
+            f"Au sein de ce domaine, la filière « {branche} » ressort avec "
+            f"{confiance_branche:.0%}, contre 2 % si le choix était aléatoire."
         )
 
         return PredictionResponse(
