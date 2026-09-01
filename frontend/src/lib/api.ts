@@ -383,4 +383,7 @@ export interface Recommandation {
   dateGeneration: string;
   dateDecision: string | null;
 }
+
+export const getMesDecisions = () =>
+  request<Recommandation[]>("/api/orientations/mes-decisions");
   

@@ -13,4 +13,6 @@ public interface RecommandationRepository extends JpaRepository<Recommandation, 
     List<Recommandation> findByConseillerUserIdAndStatut(Long conseillerUserId, StatutRecommandation statut);
 
     List<Recommandation> findByStatut(StatutRecommandation statut);
+
+    List<Recommandation> findByConseillerUserIdOrderByDateDecisionDesc(Long conseillerUserId);
 }

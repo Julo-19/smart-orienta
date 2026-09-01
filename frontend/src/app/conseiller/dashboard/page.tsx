@@ -3,18 +3,19 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Check, X, Pencil, GraduationCap, Brain, BarChart3, AlertCircle, MessageSquare,
+  Check, X, Pencil, GraduationCap, Brain, BarChart3, AlertCircle, MessageSquare, Lightbulb,
 } from "lucide-react";
 import RiasecRadar from "@/components/lyceen/RiasecRadar";
 import { Dimension } from "@/lib/riasecQuestions";
 import {
-  getRecommandationsEnAttente, getMesEtudiants, getDossierEtudiant,
+  getRecommandationsEnAttente, getMesDecisions, getMesEtudiants, getDossierEtudiant,
   validerRecommandation, modifierRecommandation, rejeterRecommandation,
-  Recommandation, EtudiantListItem, DossierEtudiant,
+  Recommandation, EtudiantListItem, DossierEtudiant, FacteurInfluent,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
 type Statut = "EN_ATTENTE" | "VALIDEE" | "MODIFIEE" | "REJETEE";
+type Filtre = "TOUS" | Statut;
 
 const STATUT_CONFIG: Record<Statut, { label: string; color: string; bg: string; dot: string }> = {
   EN_ATTENTE: { label: "En attente", color: "text-amber-600",  bg: "bg-amber-50 border-amber-200",   dot: "bg-amber-500"  },
@@ -22,6 +23,14 @@ const STATUT_CONFIG: Record<Statut, { label: string; color: string; bg: string; 
   MODIFIEE:   { label: "Modifiée",   color: "text-orange-600", bg: "bg-orange-50 border-orange-200", dot: "bg-orange-500" },
   REJETEE:    { label: "Rejetée",    color: "text-red-600",    bg: "bg-red-50 border-red-200",       dot: "bg-red-500"    },
 };
+
+const FILTRES: { id: Filtre; label: string }[] = [
+  { id: "TOUS",       label: "Tous" },
+  { id: "EN_ATTENTE", label: "En attente" },
+  { id: "VALIDEE",    label: "Validées" },
+  { id: "MODIFIEE",   label: "Modifiées" },
+  { id: "REJETEE",    label: "Rejetées" },
+];
 
 function ScoreCarres({ score, max = 5 }: { score: number; max?: number }) {
   const arrondi = Math.round(score);
@@ -41,6 +50,7 @@ export default function ConseillerDashboard() {
   const [etudiants, setEtudiants] = useState<EtudiantListItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dossier, setDossier] = useState<DossierEtudiant | null>(null);
+  const [filtre, setFiltre] = useState<Filtre>("TOUS");
 
   const [commentaire, setCommentaire] = useState("");
   const [nouvelleBranche, setNouvelleBranche] = useState("");
@@ -49,49 +59,52 @@ export default function ConseillerDashboard() {
   const [message, setMessage] = useState<{ type: Statut; texte: string } | null>(null);
   const [error, setError] = useState("");
 
-  // Chargement initial
+  /** Charge la file d'attente et l'historique des décisions. */
+  const charger = async () => {
+    try {
+      const [attente, traitees, elevs] = await Promise.all([
+        getRecommandationsEnAttente(),
+        getMesDecisions(),
+        getMesEtudiants(),
+      ]);
+      const toutes = [...attente, ...traitees];
+      setRecommandations(toutes);
+      setEtudiants(elevs);
+      if (toutes.length > 0 && selectedId === null) {
+        setSelectedId(toutes[0].id);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Chargement impossible");
+    } finally {
+      setChargement(false);
+    }
+  };
+
   useEffect(() => {
     if (!getToken()) {
       router.push("/login");
       return;
     }
-
-    const charger = async () => {
-      try {
-        const [recos, elevs] = await Promise.all([
-          getRecommandationsEnAttente(),
-          getMesEtudiants(),
-        ]);
-        setRecommandations(recos);
-        setEtudiants(elevs);
-        if (recos.length > 0) setSelectedId(recos[0].id);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Chargement impossible");
-      } finally {
-        setChargement(false);
-      }
-    };
-
     charger();
   }, [router]);
 
   const selected = recommandations.find((r) => r.id === selectedId) ?? null;
 
-  // L'élève correspondant à la recommandation sélectionnée
   const eleve = selected
     ? etudiants.find((e) => e.userId === selected.etudiantUserId) ?? null
     : null;
 
-  // Chargement du dossier détaillé à la sélection
   useEffect(() => {
     if (!eleve) {
       setDossier(null);
       return;
     }
-    getDossierEtudiant(eleve.id)
-      .then(setDossier)
-      .catch(() => setDossier(null));
+    getDossierEtudiant(eleve.id).then(setDossier).catch(() => setDossier(null));
   }, [eleve?.id]);
+
+  const affichees = filtre === "TOUS"
+    ? recommandations
+    : recommandations.filter((r) => r.statut === filtre);
 
   const nbAttente = recommandations.filter((r) => r.statut === "EN_ATTENTE").length;
   const nbTraitees = recommandations.filter((r) => r.statut !== "EN_ATTENTE").length;
@@ -102,7 +115,6 @@ export default function ConseillerDashboard() {
     E: dossier?.riasec?.scoreE ?? 0, C: dossier?.riasec?.scoreC ?? 0,
   } as Record<Dimension, number>;
 
-  // Moyenne pondérée à partir des notes du dossier
   const moyenne = (() => {
     if (!dossier?.notes?.length) return null;
     let somme = 0, coefs = 0;
@@ -111,6 +123,14 @@ export default function ConseillerDashboard() {
       coefs += n.coefficient;
     }
     return coefs === 0 ? null : Math.round((somme / coefs) * 100) / 100;
+  })();
+
+  const facteurs: FacteurInfluent[] = (() => {
+    try {
+      return selected?.facteurs ? JSON.parse(selected.facteurs) : [];
+    } catch {
+      return [];
+    }
   })();
 
   const handleAction = async (action: Statut) => {
@@ -155,20 +175,16 @@ export default function ConseillerDashboard() {
   };
 
   if (chargement) {
-    return (
-      <div className="p-12 text-center text-gray-400">
-        Chargement des dossiers…
-      </div>
-    );
+    return <div className="p-12 text-center text-gray-400">Chargement des dossiers…</div>;
   }
 
   if (recommandations.length === 0) {
     return (
       <div className="p-12 text-center">
         <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500 font-semibold">Aucun dossier à traiter</p>
+        <p className="text-gray-500 font-semibold">Aucun dossier</p>
         <p className="text-sm text-gray-400 mt-1">
-          Les recommandations en attente de validation apparaîtront ici.
+          Les recommandations concernant vos lycéens apparaîtront ici.
         </p>
         {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
       </div>
@@ -196,52 +212,75 @@ export default function ConseillerDashboard() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {recommandations.map((reco) => {
-            const s = STATUT_CONFIG[reco.statut];
-            const el = etudiants.find((e) => e.userId === reco.etudiantUserId);
-            const isSelected = reco.id === selectedId;
-            const conf = Math.round(reco.scoreConfiance * 100);
+        {/* Filtres */}
+        <div className="flex gap-1 p-3 border-b border-gray-100 flex-wrap">
+          {FILTRES.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFiltre(f.id)}
+              className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all
+                ${filtre === f.id
+                  ? "bg-gray-800 text-white"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-            return (
-              <button
-                key={reco.id}
-                onClick={() => setSelectedId(reco.id)}
-                className={`w-full text-left p-4 border-b border-gray-100 transition-all duration-150
-                  ${isSelected
-                    ? "bg-blue-50 border-l-4 border-l-blue-600"
-                    : "hover:bg-gray-50 border-l-4 border-l-transparent"}`}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <p className={`text-sm font-bold ${isSelected ? "text-blue-700" : "text-gray-800"}`}>
-                    {el?.matricule ?? `Dossier #${reco.id}`}
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <div className={`w-2 h-2 rounded-full ${s.dot}`} />
-                    <span className={`text-xs font-semibold ${s.color}`}>{s.label}</span>
+        <div className="flex-1 overflow-y-auto">
+          {affichees.length === 0 ? (
+            <p className="p-6 text-center text-xs text-gray-400">
+              Aucun dossier pour ce filtre.
+            </p>
+          ) : (
+            affichees.map((reco) => {
+              const s = STATUT_CONFIG[reco.statut];
+              const el = etudiants.find((e) => e.userId === reco.etudiantUserId);
+              const isSelected = reco.id === selectedId;
+              const conf = Math.round(reco.scoreConfiance * 100);
+
+              return (
+                <button
+                  key={reco.id}
+                  onClick={() => setSelectedId(reco.id)}
+                  className={`w-full text-left p-4 border-b border-gray-100 transition-all duration-150
+                    ${isSelected
+                      ? "bg-blue-50 border-l-4 border-l-blue-600"
+                      : "hover:bg-gray-50 border-l-4 border-l-transparent"}`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <p className={`text-sm font-bold ${isSelected ? "text-blue-700" : "text-gray-800"}`}>
+                      {el?.matricule ?? `Dossier #${reco.id}`}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${s.dot}`} />
+                      <span className={`text-xs font-semibold ${s.color}`}>{s.label}</span>
+                    </div>
                   </div>
-                </div>
-                <p className="text-xs text-gray-400">
-                  {el ? `Série ${el.serieCode} · ${el.etablissement.replace("Lycée ", "")}` : "—"}
-                </p>
-                <div className="flex justify-between mt-1">
-                  <p className="text-xs text-gray-400">{reco.branche}</p>
-                  <p className={`text-xs font-bold ${
-                    conf >= 75 ? "text-green-600" : conf >= 50 ? "text-amber-600" : "text-red-500"
-                  }`}>
-                    {conf}% conf.
+                  <p className="text-xs text-gray-400">
+                    {el ? `Série ${el.serieCode} · ${el.etablissement.replace("Lycée ", "")}` : "—"}
                   </p>
-                </div>
-              </button>
-            );
-          })}
+                  <div className="flex justify-between mt-1">
+                    <p className="text-xs text-gray-400">
+                      {reco.brancheFinale ?? reco.branche}
+                    </p>
+                    <p className={`text-xs font-bold ${
+                      conf >= 50 ? "text-green-600" : conf >= 25 ? "text-amber-600" : "text-red-500"
+                    }`}>
+                      {conf}% conf.
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </aside>
 
       {/* ── CONTENU ── */}
       <main className="flex-1 overflow-y-auto p-5">
 
-        {/* En-tête du dossier */}
         <div className="bg-gray-800 text-white rounded-2xl p-5 mb-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center
@@ -249,9 +288,7 @@ export default function ConseillerDashboard() {
               {eleve?.matricule?.slice(-2) ?? "?"}
             </div>
             <div>
-              <h2 className="text-lg font-bold">
-                {eleve?.matricule ?? "Élève inconnu"}
-              </h2>
+              <h2 className="text-lg font-bold">{eleve?.matricule ?? "Élève inconnu"}</h2>
               <p className="text-sm text-gray-400">
                 {eleve ? `${eleve.serieCode} · ${eleve.etablissement}` : "—"}
                 {" · "}Dossier #{selected?.id}
@@ -277,8 +314,7 @@ export default function ConseillerDashboard() {
         )}
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl border border-red-200 bg-red-50
-            text-sm text-red-600">
+          <div className="mb-4 p-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-600">
             {error}
           </div>
         )}
@@ -289,9 +325,7 @@ export default function ConseillerDashboard() {
           <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <GraduationCap className="w-4 h-4 text-gray-400" />
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                Académique
-              </h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Académique</h3>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
@@ -301,15 +335,11 @@ export default function ConseillerDashboard() {
                 <p className="text-xs text-gray-400 mt-0.5">Moy. pondérée</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-green-600">
-                  {dossier?.notes?.length ?? 0}
-                </p>
+                <p className="text-2xl font-black text-green-600">{dossier?.notes?.length ?? 0}</p>
                 <p className="text-xs text-gray-400 mt-0.5">Notes saisies</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-amber-500">
-                  {eleve?.serieCode ?? "—"}
-                </p>
+                <p className="text-2xl font-black text-amber-500">{eleve?.serieCode ?? "—"}</p>
                 <p className="text-xs text-gray-400 mt-0.5">Série</p>
               </div>
             </div>
@@ -394,13 +424,34 @@ export default function ConseillerDashboard() {
                 )}
               </div>
             </div>
+
+            {/* Facteurs explicatifs */}
+            {facteurs.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {facteurs.slice(0, 3).map((f) => (
+                  <div key={f.variable}>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="text-xs text-gray-500">{f.libelle}</span>
+                      <span className="text-xs font-bold text-blue-600">
+                        {f.poids.toFixed(1)} %
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="h-1.5 rounded-full bg-blue-500"
+                        style={{ width: `${Math.min(f.poids * 4, 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <p className="text-xs text-gray-500 italic leading-relaxed">
               {selected?.explication}
             </p>
           </div>
         </div>
 
-        {/* Contexte personnel */}
+        {/* Contexte */}
         {dossier?.contexte && (
           <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-4">
             <div className="flex items-center gap-2 mb-3">
@@ -517,6 +568,14 @@ export default function ConseillerDashboard() {
               <p className="text-sm text-gray-600 mt-1">
                 {selected?.commentaireConseiller || "Aucun commentaire."}
               </p>
+              {selected?.dateDecision && (
+                <p className="text-xs text-gray-400 mt-2">
+                  Décidé le {new Date(selected.dateDecision).toLocaleDateString("fr-FR", {
+                    day: "numeric", month: "long", year: "numeric",
+                    hour: "2-digit", minute: "2-digit",
+                  })}
+                </p>
+              )}
             </div>
           </div>
         )}

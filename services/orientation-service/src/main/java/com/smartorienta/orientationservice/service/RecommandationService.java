@@ -226,4 +226,13 @@ public class RecommandationService {
     private long compter(List<Recommandation> liste, StatutRecommandation statut) {
         return liste.stream().filter(r -> r.getStatut() == statut).count();
     }
+
+        /**
+     * Décisions déjà prises par un conseiller, de la plus récente à la plus ancienne.
+     * Permet de consulter les dossiers traités, que la file d'attente ne montre plus.
+     */
+    public List<Recommandation> mesDecisions(Long conseillerUserId) {
+        return recommandationRepository
+                .findByConseillerUserIdOrderByDateDecisionDesc(conseillerUserId);
+    }
 }

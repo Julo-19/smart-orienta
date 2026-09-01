@@ -116,4 +116,14 @@ public class RecommandationController {
     public ResponseEntity<StatistiquesResponse> statistiques() {
         return ResponseEntity.ok(recommandationService.statistiques());
     }
+
+    /** Historique des décisions du conseiller. */
+    @GetMapping("/mes-decisions")
+    @PreAuthorize("hasRole('CONSEILLER')")
+    public ResponseEntity<List<Recommandation>> mesDecisions(
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long conseillerId = jwtService.extractUserId(authHeader.substring(7));
+        return ResponseEntity.ok(recommandationService.mesDecisions(conseillerId));
+    }
 }
