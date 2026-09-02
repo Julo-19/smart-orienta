@@ -350,6 +350,7 @@ export interface UserInfo {
   nom: string;
   prenom: string;
   role: "LYCEEN" | "CONSEILLER" | "ADMIN";
+  actif: boolean;  
 }
 
 export const getTousUtilisateurs = () =>
@@ -396,3 +397,16 @@ export interface ServiceStatut {
 
 export const getEtatServices = () =>
   request<ServiceStatut[]>("/api/orientations/admin/services");
+
+export const changerActivation = (userId: number, actif: boolean) =>
+  request<UserInfo>(`/api/auth/admin/users/${userId}/activation`, {
+    method: "PUT",
+    body: JSON.stringify({ actif }),
+  });
+
+export const reinitialiserMotDePasse = (userId: number) =>
+  request<{ message: string }>(`/api/auth/admin/users/${userId}/reinitialisation`, {
+    method: "POST",
+  });
+
+  

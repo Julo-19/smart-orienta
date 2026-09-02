@@ -7,16 +7,18 @@ import {
 } from "recharts";
 import {
   GraduationCap, Brain, Check, Clock, UserPlus, Settings,
-  X as XIcon, CheckCircle, AlertCircle, BarChart3
+  X as XIcon, CheckCircle, AlertCircle, BarChart3,
+  UserX, UserCheck, KeyRound
 } from "lucide-react";
 import {
   creerConseiller, getStatistiques, getTousConseillers, getTousLyceens,
   getTousUtilisateurs, reassignerConseiller, getEtatServices,
+  changerActivation, reinitialiserMotDePasse,
   StatistiquesResponse, ConseillerAdmin, LyceenAdmin, UserInfo, ServiceStatut,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
-type Onglet = "overview" | "lyceens" | "conseillers" | "systeme";
+type Onglet = "overview" | "lyceens" | "conseillers" | "comptes" | "systeme";
 
 const COULEURS = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E0B", "#06B6D4", "#EF4444", "#6B7280"];
 
@@ -33,6 +35,12 @@ const SERIE_COULEUR: Record<string, string> = {
   L2: "bg-purple-100 text-purple-700", G:  "bg-green-100 text-green-700",
 };
 
+const ROLE_COULEUR: Record<string, string> = {
+  ADMIN:      "bg-purple-100 text-purple-700",
+  CONSEILLER: "bg-blue-100 text-blue-700",
+  LYCEEN:     "bg-gray-100 text-gray-600",
+};
+
 const PARAMS_SYSTEME = [
   { label: "Règle d'assignation",       value: "Établissement → Spécialité → Charge" },
   { label: "Jeton d'accès",             value: "15 minutes" },
@@ -41,13 +49,14 @@ const PARAMS_SYSTEME = [
   { label: "Notes",                     value: "0 à 20, pondérées par coefficient" },
   { label: "Questionnaire",             value: "34 questions, échelle de 1 à 5" },
   { label: "Modèle de prédiction",      value: "Random Forest, deux niveaux" },
-  { label: "Courtier de messages",      value: "Kafka — sujet decisions-conseiller" },
+  { label: "Courtier de messages",      value: "Kafka — decisions-conseiller" },
 ];
 
 const ONGLETS = [
   { id: "overview",    label: "Vue d'ensemble", icon: <BarChart3 className="w-4 h-4" /> },
   { id: "lyceens",     label: "Lycéens",        icon: <GraduationCap className="w-4 h-4" /> },
   { id: "conseillers", label: "Conseillers",    icon: <UserPlus className="w-4 h-4" /> },
+  { id: "comptes",     label: "Comptes",        icon: <KeyRound className="w-4 h-4" /> },
   { id: "systeme",     label: "Système",        icon: <Settings className="w-4 h-4" /> },
 ];
 
@@ -74,8 +83,9 @@ export default function AdminDashboard() {
   const [succes, setSucces] = useState("");
   const [erreur, setErreur] = useState("");
 
-  // Réassignation
+  // Réassignation et gestion des comptes
   const [reassignationEnCours, setReassignationEnCours] = useState<number | null>(null);
+  const [actionCompte, setActionCompte] = useState<number | null>(null);
 
   const charger = async () => {
     try {
@@ -137,6 +147,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleActivation = async (userId: number, actif: boolean) => {
+    setActionCompte(userId);
+    setErreur(""); setSucces("");
+    try {
+      await changerActivation(userId, actif);
+      setSucces(actif ? "Le compte a été réactivé." : "Le compte a été désactivé.");
+      await charger();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Opération impossible");
+    } finally {
+      setActionCompte(null);
+    }
+  };
+
+  const handleReinitialisation = async (userId: number, email: string) => {
+    setActionCompte(userId);
+    setErreur(""); setSucces("");
+    try {
+      await reinitialiserMotDePasse(userId);
+      setSucces(`Un lien de réinitialisation a été envoyé à ${email}.`);
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Envoi impossible");
+    } finally {
+      setActionCompte(null);
+    }
+  };
+
   /** Nom complet d'un utilisateur, à partir de son identifiant. */
   const nomDe = (userId: number | null) => {
     if (userId === null) return null;
@@ -170,6 +207,7 @@ export default function AdminDashboard() {
   );
 
   const servicesEnPanne = services.filter((s) => s.statut !== "UP");
+  const comptesDesactives = utilisateurs.filter((u) => !u.actif);
 
   if (chargement) {
     return (
@@ -193,7 +231,7 @@ export default function AdminDashboard() {
         {ONGLETS.map((o) => (
           <button
             key={o.id}
-            onClick={() => setOnglet(o.id as Onglet)}
+            onClick={() => { setOnglet(o.id as Onglet); setSucces(""); setErreur(""); }}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold
               border-b-2 transition-all duration-150
               ${onglet === o.id
@@ -243,7 +281,6 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-3 gap-4">
 
-            {/* Statuts */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
                 Statuts des recommandations
@@ -278,7 +315,6 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Filières */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
                 Filières recommandées
@@ -299,7 +335,6 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Activité */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
                 Activité récente
@@ -329,7 +364,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Charge des conseillers */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-5">
               Charge des conseillers
@@ -605,6 +639,123 @@ export default function AdminDashboard() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── COMPTES ── */}
+      {onglet === "comptes" && (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-800">Comptes utilisateurs</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {utilisateurs.length} compte{utilisateurs.length > 1 ? "s" : ""}
+              {comptesDesactives.length > 0 && ` · ${comptesDesactives.length} désactivé${comptesDesactives.length > 1 ? "s" : ""}`}
+              {" · "}Un compte désactivé conserve son historique mais ne peut plus se connecter.
+            </p>
+          </div>
+
+          {succes && (
+            <div className="mb-5 flex items-start gap-3 p-4 rounded-xl border border-green-200 bg-green-50">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-700">{succes}</p>
+            </div>
+          )}
+
+          {erreur && (
+            <div className="mb-5 flex items-start gap-3 p-4 rounded-xl border border-red-200 bg-red-50">
+              <XIcon className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{erreur}</p>
+            </div>
+          )}
+
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {["UTILISATEUR", "ADRESSE", "RÔLE", "ÉTAT", "ACTIONS"].map((h) => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-bold
+                      text-gray-400 uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {utilisateurs.map((u) => {
+                  const estAdmin = u.role === "ADMIN";
+                  const occupe = actionCompte === u.id;
+
+                  return (
+                    <tr key={u.id}
+                      className={`border-b border-gray-50 transition-colors
+                        ${u.actif ? "hover:bg-gray-50" : "bg-red-50/40"}`}>
+
+                      <td className="px-5 py-4 text-sm font-semibold text-gray-800">
+                        {u.prenom} {u.nom}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm text-gray-500">{u.email}</td>
+
+                      <td className="px-5 py-4">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold
+                          ${ROLE_COULEUR[u.role] ?? "bg-gray-100 text-gray-600"}`}>
+                          {u.role}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-2 h-2 rounded-full
+                            ${u.actif ? "bg-green-500" : "bg-red-500"}`} />
+                          <span className={`text-xs font-semibold
+                            ${u.actif ? "text-green-600" : "text-red-600"}`}>
+                            {u.actif ? "Actif" : "Désactivé"}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleReinitialisation(u.id, u.email)}
+                            disabled={occupe}
+                            title="Envoyer un lien de réinitialisation"
+                            className="flex items-center gap-1 px-3 py-1.5 border border-gray-200
+                              rounded-lg text-xs font-semibold text-gray-600
+                              hover:bg-gray-50 disabled:opacity-40 transition-all"
+                          >
+                            <KeyRound className="w-3 h-3" />
+                            Mot de passe
+                          </button>
+
+                          {!estAdmin && (
+                            <button
+                              onClick={() => handleActivation(u.id, !u.actif)}
+                              disabled={occupe}
+                              className={`flex items-center gap-1 px-3 py-1.5 border rounded-lg
+                                text-xs font-semibold disabled:opacity-40 transition-all
+                                ${u.actif
+                                  ? "border-red-200 text-red-600 hover:bg-red-50"
+                                  : "border-green-200 text-green-600 hover:bg-green-50"}`}
+                            >
+                              {u.actif
+                                ? <><UserX className="w-3 h-3" />Désactiver</>
+                                : <><UserCheck className="w-3 h-3" />Réactiver</>}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-xs text-gray-400 mt-4">
+            Les comptes administrateurs ne peuvent être désactivés, afin d'éviter
+            qu'un système ne devienne inaccessible à toute administration.
+          </p>
         </div>
       )}
 
