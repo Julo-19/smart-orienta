@@ -41,4 +41,8 @@ public class User {
 
     @Column(nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
+
+    //Desactive Compte
+    @Column(nullable = false)
+    private boolean actif = true;
 }

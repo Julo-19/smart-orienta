@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 import java.util.List;
 
@@ -74,6 +75,22 @@ public class AuthController {
     @GetMapping("/internal/users/{id}")
     public ResponseEntity<UserInfoResponse> utilisateurParId(@PathVariable Long id) {
         return ResponseEntity.ok(authService.utilisateurParId(id));
+    }
+
+    @PutMapping("/admin/users/{id}/activation")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserInfoResponse> changerActivation(
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> corps) {
+
+        return ResponseEntity.ok(authService.changerActivation(id, corps.get("actif")));
+    }
+
+    @PostMapping("/admin/users/{id}/reinitialisation")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> reinitialiser(@PathVariable Long id) {
+        authService.reinitialiserPour(id);
+        return ResponseEntity.ok(Map.of("message", "Un lien de réinitialisation a été envoyé"));
     }
 
 }

@@ -45,10 +45,18 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest loginRequest) {
+
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Email ou mot de passe incorrect"));
+
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Email ou mot de passe incorrect");
+        }
+
+        // Un compte désactivé conserve ses identifiants mais perd l'accès
+        if (!user.isActif()) {
+            throw new InvalidCredentialsException(
+                    "Ce compte a été désactivé. Veuillez contacter l'administration.");
         }
 
         String accessToken = jwtService.generateAccessToken(user);
@@ -56,7 +64,7 @@ public class AuthService {
 
         refreshTokenService.store(user.getEmail(), refreshToken);
 
-        return new AuthResponse(accessToken, refreshToken, user.getEmail(),user.getRole().name());
+        return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getRole().name());
     }
 
     public AuthResponse refresh(RefreshRequest request) {
@@ -157,7 +165,7 @@ public class AuthService {
         return userRepository.findAll().stream()
                 .map(u -> new UserInfoResponse(
                         u.getId(), u.getEmail(), u.getNom(),
-                        u.getPrenom(), u.getRole().name()))
+                        u.getPrenom(), u.getRole().name(), u.isActif()))
                 .toList();
     }
 
@@ -167,7 +175,37 @@ public class AuthService {
         User u = userRepository.findById(id)
                 .orElseThrow(() -> new InvalidCredentialsException("Utilisateur introuvable"));
         return new UserInfoResponse(u.getId(), u.getEmail(), u.getNom(),
-                u.getPrenom(), u.getRole().name());
+                u.getPrenom(), u.getRole().name(), u.isActif());
+    }
+
+    /**
+     * Active ou désactive un compte.
+     * Le compte est conservé : l'historique des décisions prises par un
+     * conseiller qui aurait quitté l'établissement reste ainsi traçable.
+     */
+    public UserInfoResponse changerActivation(Long userId, boolean actif) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("Utilisateur introuvable"));
+
+        // Sans ce garde-fou, l'administration pourrait se verrouiller elle-même
+        if (user.getRole() == Role.ADMIN && !actif) {
+            throw new InvalidCredentialsException(
+                    "Un compte administrateur ne peut être désactivé");
+        }
+
+        user.setActif(actif);
+        userRepository.save(user);
+
+        return new UserInfoResponse(user.getId(), user.getEmail(), user.getNom(),
+                user.getPrenom(), user.getRole().name(), user.isActif());
+    }
+
+    /** Envoie un lien de réinitialisation à un utilisateur, à la demande de l'administration. */
+    public void reinitialiserPour(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("Utilisateur introuvable"));
+        forgotPassword(user.getEmail());
     }
 
 

@@ -13,4 +13,5 @@ public class UserInfoResponse {
     private String nom;
     private String prenom;
     private String role;
+    private boolean actif;
 }
