@@ -387,3 +387,12 @@ export interface Recommandation {
 export const getMesDecisions = () =>
   request<Recommandation[]>("/api/orientations/mes-decisions");
   
+export interface ServiceStatut {
+  nom: string;
+  statut: "UP" | "DOWN" | "INCONNU";
+  instances: number;
+  adresse: string;
+}
+
+export const getEtatServices = () =>
+  request<ServiceStatut[]>("/api/orientations/admin/services");

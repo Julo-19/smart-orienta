@@ -1,14 +1,12 @@
 package com.smartorienta.orientationservice.controller;
 
-import com.smartorienta.orientationservice.dto.ModificationRequest;
-import com.smartorienta.orientationservice.dto.RejetRequest;
-import com.smartorienta.orientationservice.dto.StatistiquesResponse;
-import com.smartorienta.orientationservice.dto.ValidationRequest;
+import com.smartorienta.orientationservice.dto.*;
 import com.smartorienta.orientationservice.entity.Orientation;
 import com.smartorienta.orientationservice.entity.Recommandation;
 import com.smartorienta.orientationservice.repository.OrientationRepository;
 import com.smartorienta.orientationservice.service.JwtService;
 import com.smartorienta.orientationservice.service.RecommandationService;
+import com.smartorienta.orientationservice.service.SupervisionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +23,7 @@ public class RecommandationController {
     private final RecommandationService recommandationService;
     private final JwtService jwtService;
     private final OrientationRepository orientationRepository;
+    private final SupervisionService supervisionService;
 
     // ─────────── Côté lycéen ───────────
 
@@ -125,5 +124,12 @@ public class RecommandationController {
 
         Long conseillerId = jwtService.extractUserId(authHeader.substring(7));
         return ResponseEntity.ok(recommandationService.mesDecisions(conseillerId));
+    }
+
+    /** État des services de la plateforme. */
+    @GetMapping("/admin/services")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<ServiceStatut>> etatDesServices() {
+        return ResponseEntity.ok(supervisionService.etatDesServices());
     }
 }

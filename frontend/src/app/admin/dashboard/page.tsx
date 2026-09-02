@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import {
   creerConseiller, getStatistiques, getTousConseillers, getTousLyceens,
-  getTousUtilisateurs, reassignerConseiller,
-  StatistiquesResponse, ConseillerAdmin, LyceenAdmin, UserInfo,
+  getTousUtilisateurs, reassignerConseiller, getEtatServices,
+  StatistiquesResponse, ConseillerAdmin, LyceenAdmin, UserInfo, ServiceStatut,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -33,15 +33,6 @@ const SERIE_COULEUR: Record<string, string> = {
   L2: "bg-purple-100 text-purple-700", G:  "bg-green-100 text-green-700",
 };
 
-// L'onglet Système reste illustratif : la supervision des services
-// et les métriques des modèles ne sont pas encore exposées par l'API.
-const MICROSERVICES = [
-  { nom: "API Gateway", port: ":8080" },     { nom: "Auth Service", port: ":8081" },
-  { nom: "Student Service", port: ":8082" }, { nom: "Orientation Service", port: ":8083" },
-  { nom: "ML Service", port: ":8084" },      { nom: "Notification Service", port: ":8085" },
-  { nom: "Eureka Server", port: ":8761" },   { nom: "Config Server", port: ":8888" },
-];
-
 const PARAMS_SYSTEME = [
   { label: "Règle d'assignation",       value: "Établissement → Spécialité → Charge" },
   { label: "Jeton d'accès",             value: "15 minutes" },
@@ -49,6 +40,8 @@ const PARAMS_SYSTEME = [
   { label: "Hachage des mots de passe", value: "bcrypt, coût 12" },
   { label: "Notes",                     value: "0 à 20, pondérées par coefficient" },
   { label: "Questionnaire",             value: "34 questions, échelle de 1 à 5" },
+  { label: "Modèle de prédiction",      value: "Random Forest, deux niveaux" },
+  { label: "Courtier de messages",      value: "Kafka — sujet decisions-conseiller" },
 ];
 
 const ONGLETS = [
@@ -58,6 +51,10 @@ const ONGLETS = [
   { id: "systeme",     label: "Système",        icon: <Settings className="w-4 h-4" /> },
 ];
 
+/** « AUTH-SERVICE » devient « Auth Service ». */
+const enClair = (nom: string) =>
+  nom.split("-").map((m) => m.charAt(0) + m.slice(1).toLowerCase()).join(" ");
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [onglet, setOnglet] = useState<Onglet>("overview");
@@ -66,6 +63,7 @@ export default function AdminDashboard() {
   const [conseillers, setConseillers] = useState<ConseillerAdmin[]>([]);
   const [lyceens, setLyceens] = useState<LyceenAdmin[]>([]);
   const [utilisateurs, setUtilisateurs] = useState<UserInfo[]>([]);
+  const [services, setServices] = useState<ServiceStatut[]>([]);
   const [chargement, setChargement] = useState(true);
   const [erreurChargement, setErreurChargement] = useState("");
 
@@ -81,10 +79,12 @@ export default function AdminDashboard() {
 
   const charger = async () => {
     try {
-      const [s, c, l, u] = await Promise.all([
-        getStatistiques(), getTousConseillers(), getTousLyceens(), getTousUtilisateurs(),
+      const [s, c, l, u, srv] = await Promise.all([
+        getStatistiques(), getTousConseillers(), getTousLyceens(),
+        getTousUtilisateurs(), getEtatServices(),
       ]);
-      setStats(s); setConseillers(c); setLyceens(l); setUtilisateurs(u);
+      setStats(s); setConseillers(c); setLyceens(l);
+      setUtilisateurs(u); setServices(srv);
     } catch (err) {
       setErreurChargement(err instanceof Error ? err.message : "Chargement impossible");
     } finally {
@@ -169,6 +169,8 @@ export default function AdminDashboard() {
     (u) => u.role === "CONSEILLER" && !conseillers.some((c) => c.userId === u.id)
   );
 
+  const servicesEnPanne = services.filter((s) => s.statut !== "UP");
+
   if (chargement) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-16 text-center text-gray-400">
@@ -200,6 +202,9 @@ export default function AdminDashboard() {
           >
             {o.icon}
             {o.label}
+            {o.id === "systeme" && servicesEnPanne.length > 0 && (
+              <span className="ml-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            )}
           </button>
         ))}
       </div>
@@ -606,31 +611,61 @@ export default function AdminDashboard() {
       {/* ── SYSTÈME ── */}
       {onglet === "systeme" && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Configuration du système</h2>
-            <p className="text-sm text-gray-400 mt-0.5">
-              Architecture microservices et paramètres applicatifs
-            </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">État du système</h2>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {services.filter((s) => s.statut === "UP").length} service
+                {services.filter((s) => s.statut === "UP").length > 1 ? "s" : ""} sur{" "}
+                {services.length} en fonctionnement
+              </p>
+            </div>
+            <button
+              onClick={charger}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm
+                font-semibold text-gray-600 hover:bg-gray-50 transition-all"
+            >
+              Actualiser
+            </button>
           </div>
 
-          <div className="p-4 rounded-xl border border-amber-200 bg-amber-50">
-            <p className="text-xs text-amber-700">
-              La supervision en temps réel des services et les métriques des modèles
-              d'apprentissage ne sont pas encore exposées par l'API. Les indicateurs
-              ci-dessous sont fournis à titre indicatif.
-            </p>
-          </div>
+          {servicesEnPanne.length > 0 && (
+            <div className="p-4 rounded-xl border border-red-200 bg-red-50">
+              <p className="text-xs font-bold text-red-700 mb-1">
+                {servicesEnPanne.length} service{servicesEnPanne.length > 1 ? "s" : ""} indisponible
+                {servicesEnPanne.length > 1 ? "s" : ""}
+              </p>
+              <p className="text-xs text-red-600">
+                {servicesEnPanne.map((s) => enClair(s.nom)).join(", ")} — les fonctionnalités
+                qui en dépendent peuvent être interrompues.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-4 gap-3">
-            {MICROSERVICES.map((s) => (
-              <div key={s.nom} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                  <span className="text-xs text-gray-400 font-mono">{s.port}</span>
+            {services.map((s) => {
+              const actif = s.statut === "UP";
+              return (
+                <div key={s.nom}
+                  className={`rounded-xl border p-4 shadow-sm
+                    ${actif ? "bg-white border-gray-200" : "bg-red-50 border-red-200"}`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <div className={`w-2.5 h-2.5 rounded-full
+                      ${actif ? "bg-green-500" : "bg-red-500 animate-pulse"}`} />
+                    <span className="text-xs text-gray-400 font-mono">{s.adresse}</span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-800 mb-1">{enClair(s.nom)}</p>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs font-bold ${actif ? "text-green-600" : "text-red-600"}`}>
+                      {s.statut}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {s.instances} instance{s.instances > 1 ? "s" : ""}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm font-bold text-gray-800">{s.nom}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -653,6 +688,11 @@ export default function AdminDashboard() {
                   );
                 })}
               </div>
+
+              <p className="text-[11px] text-gray-400 mt-4 leading-relaxed">
+                Les métriques des modèles d'apprentissage ne sont pas encore
+                exposées par le module de prédiction.
+              </p>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
@@ -664,7 +704,7 @@ export default function AdminDashboard() {
                   <div key={p.label}
                     className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                     <span className="text-sm text-gray-600">{p.label}</span>
-                    <span className="text-sm font-bold text-gray-800">{p.value}</span>
+                    <span className="text-sm font-bold text-gray-800 text-right">{p.value}</span>
                   </div>
                 ))}
               </div>
