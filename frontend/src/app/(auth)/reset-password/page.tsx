@@ -166,9 +166,9 @@ function ResetPasswordForm() {
         <div className="flex-1 flex items-center justify-center">
           <Image
             src="/img2.png"
-            alt="SmartOrienta"
-            width={350}
-            height={450}
+            alt="Lycéen SmartOrienta"
+            width={600}
+            height={400}
             className="object-contain drop-shadow-xl"
             priority
           />
