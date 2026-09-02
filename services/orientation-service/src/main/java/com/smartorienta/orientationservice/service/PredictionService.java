@@ -8,6 +8,8 @@ import com.smartorienta.orientationservice.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 /**
  * Interroge le module de prédiction.
  *
@@ -20,18 +22,30 @@ import org.springframework.stereotype.Service;
 public class PredictionService {
 
     private final MlClient mlClient;
+    private final PredictionCache cache;
 
     public PredictionResponse predire(DossierMLResponse dossier) {
 
+        // Un dossier inchangé produit la même prédiction : inutile de
+        // solliciter le modèle une seconde fois.
+        Optional<PredictionResponse> enCache = cache.lire(dossier);
+        if (enCache.isPresent()) {
+            return enCache.get();
+        }
+
         PredictionRequest features = construireFeatures(dossier);
 
+        PredictionResponse prediction;
         try {
-            return mlClient.predire(features);
+            prediction = mlClient.predire(features);
         } catch (Exception e) {
             throw new BusinessException(
                     "Le module de prédiction est momentanément indisponible. "
-                  + "Veuillez réessayer dans quelques instants.");
+                            + "Veuillez réessayer dans quelques instants.");
         }
+
+        cache.ecrire(dossier, prediction);
+        return prediction;
     }
 
     /** Traduit le dossier en vecteur de caractéristiques attendu par le modèle. */
