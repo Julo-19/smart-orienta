@@ -25,9 +25,9 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(to);
-        message.setSubject("SmartOrientation - Confirmez votre adresse email");
+        message.setSubject("SmartOrienta - Confirmez votre adresse email");
         message.setText(
-                "Bienvenue sur SmartOrientation !\n\n"
+                "Bienvenue sur SmartOrienta !\n\n"
                         + "Pour confirmer votre adresse email, cliquez sur ce lien :\n"
                         + link + "\n\n"
                         + "Ce lien expire dans 24 heures.\n\n"
@@ -62,10 +62,10 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(to);
-        message.setSubject("SmartOrientation - Votre compte conseiller a été créé");
+        message.setSubject("SmartOrienta - Votre compte conseiller a été créé");
         message.setText(
                 "Bonjour " + prenom + ",\n\n"
-                        + "Un compte conseiller vient d'être créé pour vous sur la plateforme SmartOrientation.\n\n"
+                        + "Un compte conseiller vient d'être créé pour vous sur la plateforme SmartOrienta.\n\n"
                         + "Votre identifiant de connexion est votre adresse email : " + to + "\n\n"
                         + "Pour définir votre mot de passe et accéder à la plateforme, cliquez sur ce lien :\n"
                         + link + "\n\n"

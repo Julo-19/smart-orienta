@@ -90,18 +90,48 @@ jobs:
         working-directory: services/ml-service
         run: python -m compileall main.py
 
- # ── Vérification de la conteneurisation ──
-  # La construction des images est nettement plus coûteuse que la
-  # compilation : elle n'est déclenchée qu'à la demande, en portant
-  # la mention [docker] dans le message de validation.
-  docker:
-    name: images
+   # ── Détection des services modifiés ──
+  # Construire les sept images à chaque envoi serait disproportionné :
+  # on identifie d'abord les dossiers touchés par la modification.
+  changements:
+    name: détection
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[docker]')
+    outputs:
+      services: ${{ steps.detecter.outputs.services }}
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Identification des services touchés
+        id: detecter
+        run: |
+          MODIFIES=$(git diff --name-only HEAD^ HEAD | grep '^services/' | cut -d/ -f2 | sort -u)
+          if [ -z "$MODIFIES" ]; then
+            echo 'services=[]' >> $GITHUB_OUTPUT
+          else
+            LISTE=$(echo "$MODIFIES" | jq -R -s -c 'split("\n")[:-1]')
+            echo "services=$LISTE" >> $GITHUB_OUTPUT
+          fi
+          echo "Services modifiés : $MODIFIES"
+
+  # ── Construction des images concernées ──
+  images:
+    name: image ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: changements
+    if: needs.changements.outputs.services != '[]'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.changements.outputs.services) }}
 
     steps:
       - name: Récupération du code
         uses: actions/checkout@v5
 
-      - name: Construction des images
-        run: docker compose build       
+      - name: Construction de l'image
+        working-directory: services/${{ matrix.service }}
+        run: docker build -t smart-orienta-${{ matrix.service }}:${{ github.sha }} .       
