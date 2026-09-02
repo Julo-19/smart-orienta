@@ -89,3 +89,19 @@ jobs:
       - name: Vérification syntaxique
         working-directory: services/ml-service
         run: python -m compileall main.py
+
+ # ── Vérification de la conteneurisation ──
+  # La construction des images est nettement plus coûteuse que la
+  # compilation : elle n'est déclenchée qu'à la demande, en portant
+  # la mention [docker] dans le message de validation.
+  docker:
+    name: images
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[docker]')
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+
+      - name: Construction des images
+        run: docker compose build       
