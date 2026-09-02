@@ -1,0 +1,91 @@
+name: Intégration continue
+
+# Déclenché à chaque envoi sur les branches principales,
+# ainsi qu'à l'ouverture d'une demande de fusion.
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+
+  # ── Services Spring Boot ──
+  # Chaque service est compilé et testé indépendamment : l'échec de
+  # l'un n'empêche pas de connaître l'état des autres.
+  backend:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - eureka-server
+          - config-server
+          - api-gateway
+          - auth-service
+          - student-service
+          - orientation-service
+          - notification-service
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Installation de Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Compilation et tests
+        working-directory: services/${{ matrix.service }}
+        run: mvn --batch-mode verify
+
+  # ── Interface utilisateur ──
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Installation de Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installation des dépendances
+        working-directory: frontend
+        run: npm ci
+
+      - name: Construction
+        working-directory: frontend
+        run: npm run build
+
+  # ── Module de prédiction ──
+  ml:
+    name: ml-service
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Installation de Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Installation des dépendances
+        working-directory: services/ml-service
+        run: pip install -r requirements.txt
+
+      - name: Vérification syntaxique
+        working-directory: services/ml-service
+        run: python -m compileall main.py
