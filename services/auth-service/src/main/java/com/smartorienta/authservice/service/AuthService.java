@@ -162,4 +162,13 @@ public class AuthService {
     }
 
 
+    /** Identité d'un utilisateur — appel inter-services. */
+    public UserInfoResponse utilisateurParId(Long id) {
+        User u = userRepository.findById(id)
+                .orElseThrow(() -> new InvalidCredentialsException("Utilisateur introuvable"));
+        return new UserInfoResponse(u.getId(), u.getEmail(), u.getNom(),
+                u.getPrenom(), u.getRole().name());
+    }
+
+
 }

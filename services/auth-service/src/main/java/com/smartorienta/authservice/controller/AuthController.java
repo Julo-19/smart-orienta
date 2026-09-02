@@ -71,4 +71,9 @@ public class AuthController {
         return ResponseEntity.ok(authService.tousLesUtilisateurs());
     }
 
+    @GetMapping("/internal/users/{id}")
+    public ResponseEntity<UserInfoResponse> utilisateurParId(@PathVariable Long id) {
+        return ResponseEntity.ok(authService.utilisateurParId(id));
+    }
+
 }

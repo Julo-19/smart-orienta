@@ -27,6 +27,7 @@ public class RecommandationService {
     private final RecommandationRepository recommandationRepository;
     private final PredictionService predictionService;
     private final StudentClient studentClient;
+    private final EvenementPublisher evenementPublisher;
 
     /**
      * Génère une recommandation pour un lycéen : récupère son dossier auprès
@@ -99,7 +100,9 @@ public class RecommandationService {
         reco.setCommentaireConseiller(commentaire);
         reco.setDateDecision(LocalDateTime.now());
 
-        return recommandationRepository.save(reco);
+        Recommandation sauvegardee = recommandationRepository.save(reco);
+        evenementPublisher.publierDecision(sauvegardee);
+        return sauvegardee;
     }
 
     /** Le conseiller retient une autre filière que celle proposée. */
@@ -117,7 +120,9 @@ public class RecommandationService {
         reco.setCommentaireConseiller(commentaire);
         reco.setDateDecision(LocalDateTime.now());
 
-        return recommandationRepository.save(reco);
+        Recommandation sauvegardee = recommandationRepository.save(reco);
+        evenementPublisher.publierDecision(sauvegardee);
+        return sauvegardee;
     }
 
     /** Le conseiller écarte la proposition ; un motif est exigé. */
@@ -133,7 +138,9 @@ public class RecommandationService {
         reco.setCommentaireConseiller(motif);
         reco.setDateDecision(LocalDateTime.now());
 
-        return recommandationRepository.save(reco);
+        Recommandation sauvegardee = recommandationRepository.save(reco);
+        evenementPublisher.publierDecision(sauvegardee);
+        return sauvegardee;
     }
 
     /**
