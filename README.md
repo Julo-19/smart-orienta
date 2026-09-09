@@ -1,4 +1,4 @@
-# 🎓 Système Intelligent d'Aide à l'Orientation Académique
+# 🎓 SMART ORIENTA
 
 > Mémoire de fin d'études — Master en Ingénierie Logicielle 2024-2025
 
